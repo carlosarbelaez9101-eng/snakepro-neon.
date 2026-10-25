@@ -1,1 +1,134 @@
 
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07111f">
+<title>SnakePro Neon</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#07111f;color:#eafaff;font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:20px}
+main{width:100%;max-width:440px;text-align:center}
+h1{font-size:2.5rem;margin:8px;color:#39f5d1;text-shadow:0 0 18px #00e6ff}
+p{color:#a9c4d9}
+.stats{display:flex;justify-content:space-around;margin:18px 0}
+.stat{background:#102238;border:1px solid #1d5367;border-radius:12px;padding:10px 18px}
+.stat strong{display:block;font-size:1.4rem;color:#39f5d1}
+canvas{width:100%;height:auto;background:#091725;border:2px solid #21e6c1;border-radius:12px;box-shadow:0 0 22px #00d9ff33;touch-action:none}
+button,select{background:#12334a;color:white;border:1px solid #2bdacb;border-radius:10px;padding:12px 16px;font-size:1rem}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,54px);gap:7px;justify-content:center;margin:18px auto}
+.pad button{font-size:1.5rem;padding:4px;touch-action:manipulation}
+.up{grid-column:2}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
+#message{min-height:26px;color:#39f5d1}
+</style>
+</head>
+<body>
+<main>
+<h1>🐍 SnakePro</h1>
+<p>¡Come, crece y supera tu récord!</p>
+<div class="stats">
+<div class="stat">Puntos<strong id="score">0</strong></div>
+<div class="stat">Récord<strong id="best">0</strong></div>
+</div>
+<canvas id="game" width="320" height="320"></canvas>
+<div id="message">Pulsa Jugar para comenzar</div>
+<div class="actions">
+<button id="start">▶ Jugar</button>
+<button id="pause">Ⅱ Pausar</button>
+<button id="restart">↻ Reiniciar</button>
+<select id="speed" aria-label="Dificultad">
+<option value="180">Fácil</option>
+<option value="125" selected>Normal</option>
+<option value="85">Difícil</option>
+</select>
+</div>
+<div class="pad">
+<button class="up" data-dir="up" aria-label="Arriba">▲</button>
+<button class="left" data-dir="left" aria-label="Izquierda">◀</button>
+<button class="down" data-dir="down" aria-label="Abajo">▼</button>
+<button class="right" data-dir="right" aria-label="Derecha">▶</button>
+</div>
+<p>También puedes usar las flechas del teclado.</p>
+</main>
+<script>
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const scoreEl=document.getElementById('score');
+const bestEl=document.getElementById('best');
+const message=document.getElementById('message');
+const size=16, cells=20;
+let snake,food,dir,nextDir,score,timer=null,running=false,over=false;
+let best=0;
+try{best=Number(localStorage.getItem('snakepro-best'))||0}catch(e){}
+bestEl.textContent=best;
+function reset(){
+clearInterval(timer);timer=null;running=false;over=false;score=0;
+snake=[{x:8,y:10},{x:7,y:10},{x:6,y:10}];
+dir={x:1,y:0};nextDir={x:1,y:0};placeFood();
+scoreEl.textContent=0;message.textContent='Pulsa Jugar para comenzar';draw();
+}
+function placeFood(){
+do{food={x:Math.floor(Math.random()*cells),y:Math.floor(Math.random()*cells)}}
+while(snake.some(s=>s.x===food.x&&s.y===food.y));
+}
+function draw(){
+ctx.fillStyle='#091725';ctx.fillRect(0,0,320,320);
+ctx.strokeStyle='#10283a';ctx.lineWidth=.5;
+for(let i=0;i<=320;i+=size){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,320);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(320,i);ctx.stroke()}
+ctx.fillStyle='#ff5470';ctx.shadowColor='#ff5470';ctx.shadowBlur=12;
+ctx.beginPath();ctx.arc(food.x*size+8,food.y*size+8,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+snake.forEach((s,i)=>{ctx.fillStyle=i===0?'#39f5d1':'#19a98e';ctx.shadowColor='#39f5d1';ctx.shadowBlur=i===0?10:0;ctx.fillRect(s.x*size+1,s.y*size+1,size-2,size-2)});
+ctx.shadowBlur=0;
+}
+function tick(){
+dir=nextDir;
+const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+const eating=head.x===food.x&&head.y===food.y;
+if(head.x<0||head.x>=cells||head.y<0||head.y>=cells||
+snake.slice(0,eating?snake.length:snake.length-1).some(s=>s.x===head.x&&s.y===head.y)){
+clearInterval(timer);timer=null;running=false;over=true;
+message.textContent='¡Fin del juego! Pulsa Reiniciar para intentarlo otra vez.';return;
+}
+snake.unshift(head);
+if(eating){
+score+=10;scoreEl.textContent=score;
+if(score>best){best=score;bestEl.textContent=best;try{localStorage.setItem('snakepro-best',best)}catch(e){}}
+if(snake.length===cells*cells){clearInterval(timer);timer=null;running=false;message.textContent='¡Ganaste!';}
+else placeFood();
+}else snake.pop();
+draw();
+}
+function start(){
+if(running)return;
+if(over)reset();
+running=true;message.textContent='¡A jugar!';
+timer=setInterval(tick,Number(document.getElementById('speed').value));
+}
+function change(d){
+if(d.x===-dir.x&&d.y===-dir.y)return;
+nextDir=d;
+if(!running&&!over)start();
+}
+document.getElementById('start').onclick=start;
+document.getElementById('restart').onclick=reset;
+document.getElementById('pause').onclick=()=>{
+if(running){clearInterval(timer);timer=null;running=false;message.textContent='Juego pausado'}
+else if(!over)start();
+};
+document.getElementById('speed').onchange=()=>{if(running){clearInterval(timer);timer=setInterval(tick,Number(document.getElementById('speed').value))}};
+document.querySelectorAll('[data-dir]').forEach(b=>b.addEventListener('click',()=>{
+const dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+change(dirs[b.dataset.dir]);
+}));
+document.addEventListener('keydown',e=>{
+const keys={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
+if(keys[e.key]){e.preventDefault();change(keys[e.key])}
+if(e.key===' '){e.preventDefault();document.getElementById('pause').click()}
+});
+reset();
+</script>
+</body>
+</html>
