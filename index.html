@@ -1,134 +1,236 @@
 
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#07111f">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#060b18">
 <title>SnakePro Neon</title>
 <style>
+:root{--cyan:#38ffe0;--pink:#ff4fd8;--bg:#060b18;--panel:#101b30}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:#07111f;color:#eafaff;font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:20px}
-main{width:100%;max-width:440px;text-align:center}
-h1{font-size:2.5rem;margin:8px;color:#39f5d1;text-shadow:0 0 18px #00e6ff}
-p{color:#a9c4d9}
-.stats{display:flex;justify-content:space-around;margin:18px 0}
-.stat{background:#102238;border:1px solid #1d5367;border-radius:12px;padding:10px 18px}
-.stat strong{display:block;font-size:1.4rem;color:#39f5d1}
-canvas{width:100%;height:auto;background:#091725;border:2px solid #21e6c1;border-radius:12px;box-shadow:0 0 22px #00d9ff33;touch-action:none}
-button,select{background:#12334a;color:white;border:1px solid #2bdacb;border-radius:10px;padding:12px 16px;font-size:1rem}
-.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0}
-.pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,54px);gap:7px;justify-content:center;margin:18px auto}
-.pad button{font-size:1.5rem;padding:4px;touch-action:manipulation}
-.up{grid-column:2}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
-#message{min-height:26px;color:#39f5d1}
+body{margin:0;background:radial-gradient(ellipse at top,#132447,var(--bg) 70%);color:#f4f8ff;font-family:system-ui,Arial,sans-serif;min-height:100vh;padding:18px 14px 28px}
+main{max-width:440px;margin:auto;text-align:center}
+.logo{font-size:clamp(32px,9vw,48px);font-weight:950;letter-spacing:2px;color:var(--cyan);text-shadow:0 0 9px #38ffe0,0 0 30px #00c9ff66;margin:8px 0 0}
+.subtitle{color:#a9bad7;margin:3px 0 20px}
+.panel{background:#101b30d9;border:1px solid #2b4565;border-radius:18px;padding:14px;box-shadow:0 12px 40px #0005}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px}
+.stat{background:#081322;border:1px solid #263c5a;border-radius:12px;padding:9px}
+.stat span{display:block;color:#91a9c9;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.stat strong{display:block;font-size:24px;color:var(--cyan)}
+.stage{position:relative;width:100%;aspect-ratio:1}
+canvas{display:block;width:100%;height:100%;border:2px solid #2cf7df;border-radius:13px;box-shadow:0 0 22px #00ffe022;background:#07111e;touch-action:none}
+.overlay{position:absolute;inset:0;border-radius:12px;background:#030a16d9;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.overlay.hidden{display:none}
+.overlay h2{color:var(--cyan);font-size:27px;margin:0 0 8px;text-shadow:0 0 14px #00e9cc}
+.overlay p{color:#d0d9ed;line-height:1.5;margin:4px 0 17px}
+button,select{font:inherit;color:#f4f8ff;background:#142640;border:1px solid #3a597a;border-radius:12px;padding:12px;min-height:46px}
+button{cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.97)}
+.primary{width:100%;font-weight:800;background:linear-gradient(100deg,#12cdbb,#38a8ff);color:#03121d;border:0;box-shadow:0 0 18px #00eac433}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+select{grid-column:1/-1;width:100%}
+#status{min-height:25px;color:var(--cyan);font-size:14px;margin:12px 0 0}
+.pad{display:grid;grid-template-columns:repeat(3,66px);grid-template-rows:repeat(2,54px);gap:8px;justify-content:center;margin:15px auto 7px}
+.pad button{font-size:24px;font-weight:800;padding:0;background:linear-gradient(145deg,#193650,#101a2d);border-color:#347a91;color:var(--cyan);box-shadow:0 4px 14px #0003}
+.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
+.hint{font-size:12px;color:#8499b9;margin:10px 0 0}
+.small-actions{display:flex;justify-content:center;gap:10px;margin-top:12px}
+.small-actions button{min-height:38px;padding:7px 12px;font-size:13px}
+@media(min-height:850px){body{padding-top:28px}}
 </style>
 </head>
 <body>
 <main>
-<h1>🐍 SnakePro</h1>
-<p>¡Come, crece y supera tu récord!</p>
-<div class="stats">
-<div class="stat">Puntos<strong id="score">0</strong></div>
-<div class="stat">Récord<strong id="best">0</strong></div>
-</div>
-<canvas id="game" width="320" height="320"></canvas>
-<div id="message">Pulsa Jugar para comenzar</div>
-<div class="actions">
-<button id="start">▶ Jugar</button>
-<button id="pause">Ⅱ Pausar</button>
-<button id="restart">↻ Reiniciar</button>
-<select id="speed" aria-label="Dificultad">
-<option value="180">Fácil</option>
-<option value="125" selected>Normal</option>
-<option value="85">Difícil</option>
-</select>
-</div>
-<div class="pad">
-<button class="up" data-dir="up" aria-label="Arriba">▲</button>
-<button class="left" data-dir="left" aria-label="Izquierda">◀</button>
-<button class="down" data-dir="down" aria-label="Abajo">▼</button>
-<button class="right" data-dir="right" aria-label="Derecha">▶</button>
-</div>
-<p>También puedes usar las flechas del teclado.</p>
+  <div class="logo">SNAKEPRO</div>
+  <p class="subtitle">NEON ARCADE · Come, crece y conquista</p>
+  <section class="panel">
+    <div class="stats">
+      <div class="stat"><span>Puntuación</span><strong id="score">0</strong></div>
+      <div class="stat"><span>Récord</span><strong id="best">0</strong></div>
+    </div>
+    <div class="stage">
+      <canvas id="board" width="360" height="360" aria-label="Tablero del juego Snake"></canvas>
+      <div class="overlay" id="overlay">
+        <h2 id="overlayTitle">¡Prepárate!</h2>
+        <p id="overlayText">Atrapa la energía brillante.<br>¡No choques contra los bordes!</p>
+        <button class="primary" id="play">▶ JUGAR AHORA</button>
+      </div>
+    </div>
+    <p id="status" aria-live="polite">Elige la dificultad y comienza.</p>
+    <div class="actions">
+      <button id="pause">Ⅱ Pausar</button>
+      <button id="restart">↻ Reiniciar</button>
+      <select id="difficulty" aria-label="Dificultad">
+        <option value="170">Fácil · Más relajado</option>
+        <option value="125" selected>Normal · Arcade</option>
+        <option value="85">Difícil · Velocidad máxima</option>
+      </select>
+    </div>
+    <div class="pad" aria-label="Controles de dirección">
+      <button class="up" data-dir="up" aria-label="Arriba">▲</button>
+      <button class="left" data-dir="left" aria-label="Izquierda">◀</button>
+      <button class="down" data-dir="down" aria-label="Abajo">▼</button>
+      <button class="right" data-dir="right" aria-label="Derecha">▶</button>
+    </div>
+    <p class="hint">Usa los botones o las flechas del teclado · Espacio para pausar</p>
+    <div class="small-actions">
+      <button id="sound">🔊 Sonido activado</button>
+    </div>
+  </section>
+  <p class="hint">SNAKEPRO NEON · Hecho para jugar en cualquier pantalla</p>
 </main>
 <script>
-const canvas=document.getElementById('game');
+(()=>{
+const canvas=document.getElementById('board');
 const ctx=canvas.getContext('2d');
-const scoreEl=document.getElementById('score');
-const bestEl=document.getElementById('best');
-const message=document.getElementById('message');
-const size=16, cells=20;
-let snake,food,dir,nextDir,score,timer=null,running=false,over=false;
-let best=0;
-try{best=Number(localStorage.getItem('snakepro-best'))||0}catch(e){}
-bestEl.textContent=best;
-function reset(){
-clearInterval(timer);timer=null;running=false;over=false;score=0;
-snake=[{x:8,y:10},{x:7,y:10},{x:6,y:10}];
-dir={x:1,y:0};nextDir={x:1,y:0};placeFood();
-scoreEl.textContent=0;message.textContent='Pulsa Jugar para comenzar';draw();
+const $=id=>document.getElementById(id);
+const N=20,C=18;
+let snake,food,dir,nextDir,score,best=0;
+let timer=null,running=false,over=false,paused=false,soundOn=true,audio=null;
+try{best=Number(localStorage.getItem('snakepro-neon-record'))||0}catch(e){}
+$('best').textContent=best;
+
+function sound(freq=600,duration=.08,type='sine'){
+ if(!soundOn)return;
+ try{
+  audio=audio||new (window.AudioContext||window.webkitAudioContext)();
+  if(audio.state==='suspended')audio.resume();
+  const osc=audio.createOscillator(),gain=audio.createGain();
+  osc.type=type;osc.frequency.setValueAtTime(freq,audio.currentTime);
+  gain.gain.setValueAtTime(.07,audio.currentTime);
+  gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);
+  osc.connect(gain);gain.connect(audio.destination);
+  osc.start();osc.stop(audio.currentTime+duration);
+ }catch(e){}
 }
 function placeFood(){
-do{food={x:Math.floor(Math.random()*cells),y:Math.floor(Math.random()*cells)}}
-while(snake.some(s=>s.x===food.x&&s.y===food.y));
+ do{food={x:Math.floor(Math.random()*N),y:Math.floor(Math.random()*N)}}
+ while(snake.some(s=>s.x===food.x&&s.y===food.y));
+}
+function reset(){
+ clearInterval(timer);timer=null;running=false;paused=false;over=false;
+ score=0;snake=[{x:7,y:10},{x:6,y:10},{x:5,y:10}];
+ dir={x:1,y:0};nextDir={x:1,y:0};placeFood();
+ $('score').textContent='0';$('status').textContent='Listo para jugar';
+ $('overlayTitle').textContent='¡Prepárate!';
+ $('overlayText').innerHTML='Atrapa la energía brillante.<br>¡No choques contra los bordes!';
+ $('play').textContent='▶ JUGAR AHORA';
+ $('overlay').classList.remove('hidden');
+ draw();
+}
+function rounded(x,y,w,h,r){
+ ctx.beginPath();ctx.roundRect(x,y,w,h,r);
 }
 function draw(){
-ctx.fillStyle='#091725';ctx.fillRect(0,0,320,320);
-ctx.strokeStyle='#10283a';ctx.lineWidth=.5;
-for(let i=0;i<=320;i+=size){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,320);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(320,i);ctx.stroke()}
-ctx.fillStyle='#ff5470';ctx.shadowColor='#ff5470';ctx.shadowBlur=12;
-ctx.beginPath();ctx.arc(food.x*size+8,food.y*size+8,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-snake.forEach((s,i)=>{ctx.fillStyle=i===0?'#39f5d1':'#19a98e';ctx.shadowColor='#39f5d1';ctx.shadowBlur=i===0?10:0;ctx.fillRect(s.x*size+1,s.y*size+1,size-2,size-2)});
-ctx.shadowBlur=0;
+ ctx.clearRect(0,0,360,360);
+ ctx.fillStyle='#07111e';ctx.fillRect(0,0,360,360);
+ ctx.strokeStyle='#14253a';ctx.lineWidth=.7;
+ for(let i=0;i<=360;i+=C){
+  ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,360);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(360,i);ctx.stroke();
+ }
+ const fx=food.x*C+C/2,fy=food.y*C+C/2;
+ ctx.save();ctx.shadowColor='#ff4fd8';ctx.shadowBlur=22;
+ ctx.fillStyle='#ff4fd8';ctx.beginPath();ctx.arc(fx,fy,6+Math.sin(Date.now()/140)*1.2,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+ snake.forEach((s,i)=>{
+  const x=s.x*C+1,y=s.y*C+1;
+  ctx.save();ctx.shadowColor=i===0?'#38ffe0':'#00c9a7';ctx.shadowBlur=i===0?17:5;
+  const grad=ctx.createLinearGradient(x,y,x+C,y+C);
+  grad.addColorStop(0,i===0?'#b8fff4':'#3bffbd');
+  grad.addColorStop(1,i===0?'#19cbb8':'#0b9b91');
+  ctx.fillStyle=grad;rounded(x,y,C-2,C-2,5);ctx.fill();ctx.restore();
+  if(i===0){
+   ctx.fillStyle='#06202a';
+   const ex=x+C/2+(dir.x===1?4:dir.x===-1?-4:0);
+   const ey=y+C/2+(dir.y===1?4:dir.y===-1?-4:0);
+   ctx.beginPath();ctx.arc(ex+(dir.y===0?0:-3),ey+(dir.x===0?0:-3),1.7,0,Math.PI*2);ctx.fill();
+   ctx.beginPath();ctx.arc(ex+(dir.y===0?0:3),ey+(dir.x===0?0:3),1.7,0,Math.PI*2);ctx.fill();
+  }
+ });
 }
-function tick(){
-dir=nextDir;
-const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
-const eating=head.x===food.x&&head.y===food.y;
-if(head.x<0||head.x>=cells||head.y<0||head.y>=cells||
-snake.slice(0,eating?snake.length:snake.length-1).some(s=>s.x===head.x&&s.y===head.y)){
-clearInterval(timer);timer=null;running=false;over=true;
-message.textContent='¡Fin del juego! Pulsa Reiniciar para intentarlo otra vez.';return;
-}
-snake.unshift(head);
-if(eating){
-score+=10;scoreEl.textContent=score;
-if(score>best){best=score;bestEl.textContent=best;try{localStorage.setItem('snakepro-best',best)}catch(e){}}
-if(snake.length===cells*cells){clearInterval(timer);timer=null;running=false;message.textContent='¡Ganaste!';}
-else placeFood();
-}else snake.pop();
-draw();
+function interval(){
+ clearInterval(timer);
+ timer=setInterval(tick,Number($('difficulty').value));
 }
 function start(){
-if(running)return;
-if(over)reset();
-running=true;message.textContent='¡A jugar!';
-timer=setInterval(tick,Number(document.getElementById('speed').value));
+ if(running)return;
+ if(over)reset();
+ running=true;paused=false;
+ $('overlay').classList.add('hidden');
+ $('status').textContent='¡A jugar! Atrapa la energía.';
+ $('play').textContent='▶ CONTINUAR';
+ interval();
+}
+function tick(){
+ dir=nextDir;
+ const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+ const eating=head.x===food.x&&head.y===food.y;
+ const body=eating?snake:snake.slice(0,-1);
+ if(head.x<0||head.x>=N||head.y<0||head.y>=N||
+    body.some(s=>s.x===head.x&&s.y===head.y)){
+  finish(false);return;
+ }
+ snake.unshift(head);
+ if(eating){
+  score+=10;$('score').textContent=score;sound(800,.1,'sine');
+  if(score>best){
+   best=score;$('best').textContent=best;
+   try{localStorage.setItem('snakepro-neon-record',String(best))}catch(e){}
+  }
+  if(snake.length===N*N){finish(true);return}
+  placeFood();
+ }else snake.pop();
+ draw();
+}
+function finish(won){
+ clearInterval(timer);timer=null;running=false;over=true;
+ sound(won?1000:160,.3,won?'sine':'sawtooth');
+ $('overlayTitle').textContent=won?'¡GANASTE!':'FIN DEL JUEGO';
+ $('overlayText').innerHTML=(won?'¡Has llenado el tablero!':'Puntuación: '+score+' puntos')+'<br>Récord: '+best;
+ $('play').textContent='↻ JUGAR OTRA VEZ';
+ $('overlay').classList.remove('hidden');
+ $('status').textContent=won?'¡Victoria!':'¡Inténtalo otra vez!';
 }
 function change(d){
-if(d.x===-dir.x&&d.y===-dir.y)return;
-nextDir=d;
-if(!running&&!over)start();
+ if(d.x===-dir.x&&d.y===-dir.y)return;
+ nextDir=d;
+ if(!running&&!over)start();
 }
-document.getElementById('start').onclick=start;
-document.getElementById('restart').onclick=reset;
-document.getElementById('pause').onclick=()=>{
-if(running){clearInterval(timer);timer=null;running=false;message.textContent='Juego pausado'}
-else if(!over)start();
-};
-document.getElementById('speed').onchange=()=>{if(running){clearInterval(timer);timer=setInterval(tick,Number(document.getElementById('speed').value))}};
+$('play').addEventListener('click',()=>{
+ sound(500,.06);
+ if(paused){paused=false;start()}else start();
+});
+$('restart').addEventListener('click',()=>{sound(400,.05);reset()});
+$('pause').addEventListener('click',()=>{
+ if(running){
+  clearInterval(timer);timer=null;running=false;paused=true;
+  $('overlayTitle').textContent='PAUSA';
+  $('overlayText').textContent='Tu partida está en pausa.';
+  $('play').textContent='▶ CONTINUAR';
+  $('overlay').classList.remove('hidden');
+  $('status').textContent='Partida pausada';
+ }else if(paused){start()}
+ else if(!over){start()}
+});
+$('difficulty').addEventListener('change',()=>{if(running)interval()});
 document.querySelectorAll('[data-dir]').forEach(b=>b.addEventListener('click',()=>{
-const dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
-change(dirs[b.dataset.dir]);
+ const map={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+ change(map[b.dataset.dir]);
 }));
 document.addEventListener('keydown',e=>{
-const keys={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
-if(keys[e.key]){e.preventDefault();change(keys[e.key])}
-if(e.key===' '){e.preventDefault();document.getElementById('pause').click()}
+ const map={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
+ if(map[e.key]){e.preventDefault();change(map[e.key])}
+ if(e.key===' '){e.preventDefault();$('pause').click()}
+});
+$('sound').addEventListener('click',()=>{
+ soundOn=!soundOn;
+ $('sound').textContent=soundOn?'🔊 Sonido activado':'🔇 Sonido desactivado';
+ if(soundOn)sound(600,.08);
 });
 reset();
+})();
 </script>
 </body>
 </html>
