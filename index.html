@@ -182,7 +182,7 @@ function rectCells(x,y,w,h){
   return out;
 }
 
-/* Genera habitaciones grandes, cuadradas y rectangulares, conectadas por pasillos. */
+/* Genera seis habitaciones grandes y abiertas con pasillos amplios. */
 function makeRooms(){
   obstacles=[];roomLayout=[];
   if(mode!=="levels")return;
@@ -199,47 +199,47 @@ function makeRooms(){
     obstacles=obstacles.filter(o=>!(o.x===x&&o.y===y));
   };
 
+  // Solo seis habitaciones grandes para que el tablero respire.
   const rooms=[
-    {x:2,y:2,w:7,h:6},{x:12,y:2,w:6,h:7},{x:21,y:2,w:7,h:6},
-    {x:2,y:12,w:6,h:7},{x:12,y:12,w:6,h:6},{x:21,y:12,w:7,h:7},
-    {x:2,y:22,w:7,h:6},{x:12,y:21,w:7,h:7},{x:21,y:22,w:7,h:6}
+    {x:2,y:2,w:9,h:6}, {x:18,y:2,w:9,h:6},
+    {x:2,y:12,w:9,h:6}, {x:18,y:12,w:9,h:6},
+    {x:2,y:22,w:9,h:6}, {x:18,y:22,w:9,h:6}
   ];
 
   rooms.forEach((r,i)=>{
-    const gapTop=1+((level+i)%(r.w-2));
-    const gapBottom=1+((level*2+i+1)%(r.w-2));
-    const gapLeft=1+((level+i*2)%(r.h-2));
-    const gapRight=1+((level*2+i)%(r.h-2));
-
+    const topGap=2+((level+i)%(r.w-4));
+    const sideGap=2+((level+i*2)%(r.h-3));
     for(let dx=0;dx<r.w;dx++){
-      if(dx!==gapTop&&dx!==gapTop-1)addWall(r.x+dx,r.y);
-      if(dx!==gapBottom&&dx!==gapBottom-1)addWall(r.x+dx,r.y+r.h-1);
+      if(dx<topGap||dx>topGap+1)addWall(r.x+dx,r.y);
+      if(dx<Math.floor(r.w/2)-1||dx>Math.floor(r.w/2))addWall(r.x+dx,r.y+r.h-1);
     }
     for(let dy=0;dy<r.h;dy++){
-      if(dy!==gapLeft&&dy!==gapLeft-1)addWall(r.x,r.y+dy);
-      if(dy!==gapRight&&dy!==gapRight-1)addWall(r.x+r.w-1,r.y+dy);
+      if(dy<sideGap||dy>sideGap+1)addWall(r.x,r.y+dy);
+      if(dy<Math.floor(r.h/2)-1||dy>Math.floor(r.h/2))addWall(r.x+r.w-1,r.y+dy);
     }
     roomLayout.push(r);
 
-    if(level>=2&&i%2===0){
+    // En niveles avanzados, solo algunas habitaciones tienen un divisor.
+    if(level>=4&&i%3===0){
       const midX=r.x+Math.floor(r.w/2);
       const openingY=r.y+Math.floor(r.h/2);
       for(let y=r.y+1;y<r.y+r.h-1;y++)if(y!==openingY)addWall(midX,y);
-    }
-    if(level>=4&&i%3===1){
-      const midY=r.y+Math.floor(r.h/2);
-      const openingX=r.x+Math.floor(r.w/2);
-      for(let x=r.x+1;x<r.x+r.w-1;x++)if(x!==openingX)addWall(x,midY);
+      clearCell(midX,openingY);
     }
   });
 
-  [9,10,19,20].forEach(y=>{for(let x=1;x<TOTAL-1;x++)clearCell(x,y)});
-  [9,10,19,20].forEach(x=>{for(let y=1;y<TOTAL-1;y++)clearCell(x,y)});
+  // Pasillos horizontales y verticales anchos entre las habitaciones.
+  for(let y=1;y<TOTAL-1;y++){
+    [13,14,15,16].forEach(x=>clearCell(x,y));
+  }
+  [9,10,19,20].forEach(y=>{
+    for(let x=1;x<TOTAL-1;x++)clearCell(x,y);
+  });
 
+  // Zona de inicio libre.
   for(let y=11;y<=18;y++)for(let x=11;x<=18;x++)clearCell(x,y);
   obstacles=obstacles.filter(o=>!(o.x===food.x&&o.y===food.y));
 }
-
 function placeFood(){food=freeCell()}
 function resetGame(){
   clearInterval(timer);timer=null;
@@ -341,11 +341,8 @@ function showOverlay(title,text,btn="Continuar"){
 function hideOverlay(){$("overlay").classList.remove("show")}
 function pauseGame(){
   if(gameOver)return;
-  if(paused){
-    paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop();
-  }else{
-    paused=true;running=false;stopLoop();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar";
-  }
+  if(paused){paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop()}
+  else{paused=true;running=false;stopLoop();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar"}
 }
 $("startBtn").addEventListener("click",()=>{
   $("menu").style.display="none";$("game").style.display="block";resetGame();
