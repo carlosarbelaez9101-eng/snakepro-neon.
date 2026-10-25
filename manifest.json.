@@ -1,0 +1,12 @@
+
+{
+  "name": "SnakePro Neon",
+  "short_name": "SnakePro",
+  "description": "Juego de serpiente estilo arcade neón",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060b18",
+  "theme_color": "#060b18"
+}
