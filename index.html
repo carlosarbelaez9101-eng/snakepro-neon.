@@ -182,7 +182,7 @@ function rectCells(x,y,w,h){
   return out;
 }
 
-/* Genera seis habitaciones grandes y abiertas con pasillos amplios. */
+/* Habitaciones grandes, pasillos amplios y dificultad gradual por nivel. */
 function makeRooms(){
   obstacles=[];roomLayout=[];
   if(mode!=="levels")return;
@@ -199,7 +199,7 @@ function makeRooms(){
     obstacles=obstacles.filter(o=>!(o.x===x&&o.y===y));
   };
 
-  // Solo seis habitaciones grandes para que el tablero respire.
+  // Seis habitaciones amplias en dos columnas y tres filas.
   const rooms=[
     {x:2,y:2,w:9,h:6}, {x:18,y:2,w:9,h:6},
     {x:2,y:12,w:9,h:6}, {x:18,y:12,w:9,h:6},
@@ -207,36 +207,38 @@ function makeRooms(){
   ];
 
   rooms.forEach((r,i)=>{
-    const topGap=2+((level+i)%(r.w-4));
-    const sideGap=2+((level+i*2)%(r.h-3));
+    // Dos aberturas por lado para evitar callejones y facilitar el giro.
+    const topGap=2+((level+i*2)%(r.w-4));
+    const sideGap=2+((level+i)%(r.h-3));
     for(let dx=0;dx<r.w;dx++){
-      if(dx<topGap||dx>topGap+1)addWall(r.x+dx,r.y);
-      if(dx<Math.floor(r.w/2)-1||dx>Math.floor(r.w/2))addWall(r.x+dx,r.y+r.h-1);
+      if(Math.abs(dx-topGap)>1)addWall(r.x+dx,r.y);
+      if(Math.abs(dx-(r.w-1-topGap))>1)addWall(r.x+dx,r.y+r.h-1);
     }
     for(let dy=0;dy<r.h;dy++){
-      if(dy<sideGap||dy>sideGap+1)addWall(r.x,r.y+dy);
-      if(dy<Math.floor(r.h/2)-1||dy>Math.floor(r.h/2))addWall(r.x+r.w-1,r.y+dy);
+      if(Math.abs(dy-sideGap)>1)addWall(r.x,r.y+dy);
+      if(Math.abs(dy-(r.h-1-sideGap))>1)addWall(r.x+r.w-1,r.y+dy);
     }
     roomLayout.push(r);
 
-    // En niveles avanzados, solo algunas habitaciones tienen un divisor.
-    if(level>=4&&i%3===0){
+    // Desde el nivel 4 aparecen pocos divisores; se agregan gradualmente.
+    const addDivider=(level>=4&&i===1)||(level>=6&&i===3)||(level>=8&&i===4)||(level>=10&&i===0);
+    if(addDivider){
       const midX=r.x+Math.floor(r.w/2);
       const openingY=r.y+Math.floor(r.h/2);
-      for(let y=r.y+1;y<r.y+r.h-1;y++)if(y!==openingY)addWall(midX,y);
-      clearCell(midX,openingY);
+      for(let y=r.y+1;y<r.y+r.h-1;y++){
+        if(Math.abs(y-openingY)>1)addWall(midX,y);
+      }
+      clearCell(midX,openingY-1);clearCell(midX,openingY);clearCell(midX,openingY+1);
     }
   });
 
-  // Pasillos horizontales y verticales anchos entre las habitaciones.
-  for(let y=1;y<TOTAL-1;y++){
-    [13,14,15,16].forEach(x=>clearCell(x,y));
-  }
+  // Corredores principales de cuatro casillas de ancho.
+  for(let y=1;y<TOTAL-1;y++)[13,14,15,16].forEach(x=>clearCell(x,y));
   [9,10,19,20].forEach(y=>{
     for(let x=1;x<TOTAL-1;x++)clearCell(x,y);
   });
 
-  // Zona de inicio libre.
+  // Área central de salida despejada para que la partida empiece con seguridad.
   for(let y=11;y<=18;y++)for(let x=11;x<=18;x++)clearCell(x,y);
   obstacles=obstacles.filter(o=>!(o.x===food.x&&o.y===food.y));
 }
@@ -247,7 +249,8 @@ function resetGame(){
   snake=[{x:14,y:15},{x:13,y:15},{x:12,y:15}];
   direction={x:1,y:0};nextDirection={x:1,y:0};
   obstacles=[];roomLayout=[];
-  makeRooms();placeFood();
+  makeRooms();
+  placeFood();
   running=true;paused=false;gameOver=false;
   $("score").textContent=score;$("best").textContent=best;$("level").textContent=level;
   $("pauseBtn").textContent="Ⅱ Pausar";
@@ -259,31 +262,37 @@ function setGameOver(title,msg){
   running=false;paused=false;gameOver=true;stopLoop();
   $("overlayTitle").textContent=title;$("overlayText").textContent=msg;
   $("overlayBtn").textContent="Jugar otra vez";$("overlay").classList.add("show");
-  $("pauseBtn").textContent="Ⅱ Pausar";beep(150,.25);
+  $("pauseBtn").textContent="Ⅱ Pausar";
+  beep(150,.25);
 }
 function levelUp(){
   if(mode!=="levels")return;
   level=Math.min(10,level+1);foodsThisLevel=0;
   $("level").textContent=level;
-  makeRooms();placeFood();beep(760,.13);
+  makeRooms();placeFood();
+  beep(760,.13);
   $("overlayTitle").textContent=`¡Nivel ${level}!`;
   $("overlayText").textContent="Las habitaciones cambian y el laberinto se vuelve más complejo.";
-  $("overlayBtn").textContent="Continuar";$("overlay").classList.add("show");
+  $("overlayBtn").textContent="Continuar";
+  $("overlay").classList.add("show");
   paused=true;running=false;stopLoop();
 }
 function tick(){
   if(!running||paused||gameOver)return;
   direction=nextDirection;
   let nx=snake[0].x+direction.x,ny=snake[0].y+direction.y;
-  if(!walls){nx=(nx+TOTAL)%TOTAL;ny=(ny+TOTAL)%TOTAL}
-  else if(!inside(nx,ny)){setGameOver("¡Choque!","Has golpeado el borde exterior.");return}
+  if(!walls){
+    nx=(nx+TOTAL)%TOTAL;ny=(ny+TOTAL)%TOTAL;
+  }else if(!inside(nx,ny)){setGameOver("¡Choque!","Has golpeado el borde exterior.");return}
   if(cellBlocked(nx,ny)){setGameOver("¡Pared!","Has chocado con una pared de la habitación.");return}
   const eating=nx===food.x&&ny===food.y;
   const body=eating?snake:snake.slice(0,-1);
   if(body.some(s=>s.x===nx&&s.y===ny)){setGameOver("¡Fin del juego!","Has chocado con tu propia cola.");return}
   snake.unshift({x:nx,y:ny});
   if(eating){
-    score+=10;foodsThisLevel++;$("score").textContent=score;beep(620,.06);
+    score+=10;foodsThisLevel++;
+    $("score").textContent=score;
+    beep(620,.06);
     if(score>best){best=score;$("best").textContent=best;try{localStorage.setItem("snakepro-neon-best",String(best))}catch(e){}}
     if(mode==="levels"&&foodsThisLevel>=5){
       if(level>=10){setGameOver("¡Victoria!","Has completado los 10 niveles de SnakePro Neon.");return}
@@ -294,7 +303,7 @@ function tick(){
   draw();
 }
 function roundedRect(x,y,w,h,r){
-  ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h);ctx.fill();
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):(ctx.rect(x,y,w,h));ctx.fill();
 }
 function draw(){
   ctx.clearRect(0,0,SIZE,SIZE);
@@ -324,7 +333,8 @@ function draw(){
     ctx.save();ctx.shadowBlur=i===0?18:9;ctx.shadowColor=i===0?"#00f5ff":"#00c9c9";
     const sg=ctx.createLinearGradient(x,y,x+CELL,y+CELL);
     sg.addColorStop(0,i===0?"#d4ffff":"#4afaff");sg.addColorStop(1,i===0?"#00c9ff":"#087bba");
-    ctx.fillStyle=sg;roundedRect(x+1.5,y+1.5,CELL-3,CELL-3,i===0?6:5);ctx.restore();
+    ctx.fillStyle=sg;roundedRect(x+1.5,y+1.5,CELL-3,CELL-3,i===0?6:5);
+    ctx.restore();
     if(i===0){
       ctx.fillStyle="#071023";
       const ex=x+CELL/2+(direction.x===1?4:direction.x===-1?-4:0);
@@ -335,14 +345,16 @@ function draw(){
   });
 }
 function showOverlay(title,text,btn="Continuar"){
-  $("overlayTitle").textContent=title;$("overlayText").textContent=text;
-  $("overlayBtn").textContent=btn;$("overlay").classList.add("show");
+  $("overlayTitle").textContent=title;$("overlayText").textContent=text;$("overlayBtn").textContent=btn;$("overlay").classList.add("show");
 }
 function hideOverlay(){$("overlay").classList.remove("show")}
 function pauseGame(){
   if(gameOver)return;
-  if(paused){paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop()}
-  else{paused=true;running=false;stopLoop();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar"}
+  if(paused){
+    paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop();
+  }else{
+    paused=true;running=false;stopLoop();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar";
+  }
 }
 $("startBtn").addEventListener("click",()=>{
   $("menu").style.display="none";$("game").style.display="block";resetGame();
