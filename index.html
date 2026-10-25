@@ -160,7 +160,8 @@ function reset(){
 snake=[{x:8,y:9},{x:7,y:9},{x:6,y:9}];dir={x:1,y:0};nextDir={x:1,y:0};score=0;running=false;paused=false;over=false;
 placeFood();updateScore();draw();showOverlay("¿Listo para jugar?","Pulsa Jugar y dirige la serpiente con el joystick o deslizando el dedo.");
 playBtn.textContent="▶ Jugar";pauseBtn.textContent="Ⅱ Pausar";
-}window.chooseWallMode = function(withWalls){
+}
+  window.chooseWallMode = function(withWalls){
   wallMode = withWalls;
   reset();
   start();
