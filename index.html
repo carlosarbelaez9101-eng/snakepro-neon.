@@ -135,14 +135,17 @@ let wallMode = true;
 document.getElementById("wallModeBtn").addEventListener("click", () => {
   wallMode = true;
   reset();
+  hideOverlay();
   start();
 });
 
 document.getElementById("noWallModeBtn").addEventListener("click", () => {
   wallMode = false;
   reset();
+  hideOverlay();
   start();
-}); <script>
+});
+  <script>
 (()=>{
 "use strict";
 const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
