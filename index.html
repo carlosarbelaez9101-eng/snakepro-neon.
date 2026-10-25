@@ -3,485 +3,639 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#070b18">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#080b18">
+<meta name="description" content="SnakePro Neon: juega al clásico juego de la serpiente con estilo neón.">
 <title>SnakePro Neon</title>
 
 <style>
-*{box-sizing:border-box}
-body{
-  margin:0;
-  padding:10px;
-  background:#070b18;
-  color:#eafcff;
-  font-family:Arial,sans-serif;
-  text-align:center
+:root {
+  --bg: #080b18;
+  --panel: #11182b;
+  --cyan: #00f5ff;
+  --pink: #ff38d1;
+  --green: #39ff88;
+  --text: #f4f7ff;
+  --muted: #9eaccb;
 }
-h1{
-  color:#00f7ff;
-  text-shadow:0 0 15px #00f7ff;
-  margin:15px 0
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at top, #172449 0%, var(--bg) 65%);
+  color: var(--text);
+  font-family: system-ui, Arial, sans-serif;
+  text-align: center;
+  padding: 18px 12px 28px;
+  -webkit-tap-highlight-color: transparent;
 }
-.panel{
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  flex-wrap:wrap;
-  margin:10px
+.app { width: 100%; max-width: 470px; margin: 0 auto; }
+h1 {
+  margin: 5px 0 2px;
+  font-size: clamp(28px, 8vw, 40px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-shadow: 0 0 8px #00f5ff, 0 0 24px #0077ff;
 }
-.stat{
-  background:#111c31;
-  border:1px solid #00d9ff;
-  border-radius:10px;
-  padding:9px
+.subtitle { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+.stats { display: flex; gap: 10px; margin-bottom: 12px; }
+.stat {
+  flex: 1; padding: 11px 8px; border: 1px solid #283b61;
+  background: #0d1426; border-radius: 14px;
 }
-button{
-  background:#10243c;
-  color:#fff;
-  border:1px solid #00eaff;
-  border-radius:9px;
-  padding:11px;
-  margin:4px;
-  font-weight:bold;
-  cursor:pointer;
-  touch-action:manipulation
+.stat span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.stat strong { display: block; color: var(--green); font-size: 24px; }
+.game-wrap {
+  position: relative; width: 100%; overflow: hidden;
+  border: 2px solid var(--cyan); border-radius: 16px;
+  box-shadow: 0 0 12px #00f5ff66, inset 0 0 20px #00f5ff12;
+  background: #070b16;
+  touch-action: none;
 }
-button:active{background:#007b92}
-canvas{
-  display:block;
-  background:#050914;
-  border:2px solid #00eaff;
-  border-radius:10px;
-  width:min(92vw,400px);
-  height:min(92vw,400px);
-  max-width:400px;
-  max-height:400px;
-  margin:auto
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 1; }
+.overlay {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px; background: #050816dc; backdrop-filter: blur(5px);
 }
-#message{min-height:24px;color:#ffe66d}
-.controls{
-  display:grid;
-  grid-template-columns:55px 55px 55px;
-  gap:5px;
-  justify-content:center;
-  margin:10px
+.overlay.hidden { display: none; }
+.overlay-card {
+  width: 100%; padding: 20px 14px; border-radius: 18px;
+  border: 1px solid #00f5ff80; background: #0d1425;
+  box-shadow: 0 0 25px #00f5ff22;
 }
-.controls button{
-  height:48px;
-  font-size:20px;
-  margin:0;
-  padding:0
+.overlay h2 { color: var(--cyan); margin: 0 0 8px; font-size: 24px; }
+.overlay p { color: #c3cde3; font-size: 13px; line-height: 1.5; margin: 0 0 16px; }
+.section-label { color: var(--muted); font-size: 12px; margin: 12px 0 8px; }
+.modes, .actions { display: flex; gap: 8px; }
+.modes button { flex: 1; }
+button {
+  font: inherit; font-weight: 750; cursor: pointer;
+  border: 1px solid #31456b; border-radius: 12px;
+  color: var(--text); background: #18233d;
+  padding: 12px 10px; min-height: 44px;
+  transition: transform .1s, background .15s, border-color .15s;
 }
-.power{
-  max-width:420px;
-  margin:10px auto;
-  padding:8px;
-  background:#0b1428;
-  border:1px solid #193a56;
-  border-radius:12px
+button:active { transform: scale(.97); }
+button:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+button.active {
+  color: #041018; background: var(--cyan);
+  border-color: var(--cyan); box-shadow: 0 0 12px #00f5ff55;
 }
-.power button{display:inline-block}
+button.primary {
+  color: #041018; background: var(--green);
+  border-color: var(--green); box-shadow: 0 0 12px #39ff8844;
+}
+button.pink { border-color: #ff38d180; }
+.overlay .primary { width: 100%; margin-top: 14px; }
+.actions { margin-top: 12px; }
+.actions button { flex: 1; font-size: 13px; padding: 11px 5px; }
+.status { min-height: 20px; color: var(--muted); font-size: 12px; margin: 10px 0; }
+.joystick-area { margin: 18px auto 0; width: 190px; }
+.joystick {
+  position: relative; width: 170px; height: 170px; margin: auto;
+  border-radius: 50%; border: 2px solid #00f5ff70;
+  background: radial-gradient(circle, #132847 0%, #0a1121 70%);
+  box-shadow: 0 0 22px #00f5ff20;
+  touch-action: none; user-select: none;
+}
+.joystick::before, .joystick::after {
+  content: ""; position: absolute; background: #00f5ff22;
+}
+.joystick::before { width: 1px; height: 100%; left: 50%; top: 0; }
+.joystick::after { height: 1px; width: 100%; top: 50%; left: 0; }
+.knob {
+  position: absolute; width: 60px; height: 60px; left: 53px; top: 53px;
+  border-radius: 50%; background: #00f5ff;
+  border: 3px solid #c8ffff; box-shadow: 0 0 18px #00f5ff99;
+  pointer-events: none;
+}
+.hint { color: var(--muted); font-size: 12px; margin-top: 12px; }
+@media (max-width: 360px) {
+  body { padding: 12px 8px 20px; }
+  .actions button { font-size: 12px; }
+  .joystick { width: 150px; height: 150px; }
+  .knob { width: 54px; height: 54px; left: 46px; top: 46px; }
+}
 </style>
 </head>
 
 <body>
-<h1>🐍 SnakePro Neon</h1>
+<main class="app">
+  <h1>🐍 SnakePro Neon</h1>
+  <div class="subtitle">EL CLÁSICO JUEGO · EDICIÓN NEÓN</div>
 
-<div class="panel">
-  <div class="stat">Puntos: <span id="score">0</span></div>
-  <div class="stat">🪙 Monedas: <span id="coins">0</span></div>
-  <div class="stat">Récord: <span id="best">0</span></div>
-</div>
+  <div class="stats">
+    <div class="stat"><span>Puntuación</span><strong id="score">0</strong></div>
+    <div class="stat"><span>Récord</span><strong id="best">0</strong></div>
+  </div>
 
-<canvas id="game" width="400" height="400"></canvas>
+  <div class="game-wrap">
+    <canvas id="game" width="400" height="400" aria-label="Tablero del juego SnakePro Neon"></canvas>
 
-<p id="message">¡Come, gana monedas y activa poderes!</p>
+    <div class="overlay" id="overlay">
+      <div class="overlay-card">
+        <h2 id="overlayTitle">SnakePro Neon</h2>
+        <p id="overlayText">Elige un modo y comienza a jugar.</p>
+        <div class="section-label">ELIGE TU MODO</div>
+        <div class="modes">
+          <button id="wallModeBtnMenu" class="active">🧱 Con paredes</button>
+          <button id="noWallModeBtnMenu">♾️ Sin paredes</button>
+        </div>
+        <button id="overlayPlayBtn" class="primary">▶ Comenzar partida</button>
+      </div>
+    </div>
+  </div>
 
-<div>
-  <button onclick="startGame()">▶ Jugar / Reiniciar</button>
-  <button onclick="toggleWalls()">🧱 Paredes: <span id="wallLabel">Sí</span></button>
-</div>
+  <div class="section-label">MODO DE JUEGO</div>
+  <div class="modes">
+    <button id="wallModeBtn" class="active">🧱 Con paredes</button>
+    <button id="noWallModeBtn">♾️ Sin paredes</button>
+  </div>
 
-<div class="power">
-  <h3>⚡ Poderes especiales</h3>
-  <button onclick="buyPower('shield')">🛡️ Escudo — 30 🪙</button>
-  <button onclick="buyPower('fast')">🐇 Velocidad — 20 🪙</button>
-  <button onclick="buyPower('slow')">🐢 Lentitud — 20 🪙</button>
-  <p id="powerStatus">Sin poderes activos</p>
-</div>
+  <div class="actions">
+    <button id="playBtn" class="primary">▶ Jugar</button>
+    <button id="pauseBtn">Ⅱ Pausar</button>
+    <button id="restartBtn" class="pink">↻ Reiniciar</button>
+  </div>
 
-<div class="controls">
-  <span></span>
-  <button onclick="setDir(0,-1)" aria-label="Arriba">⬆️</button>
-  <span></span>
-  <button onclick="setDir(-1,0)" aria-label="Izquierda">⬅️</button>
-  <button onclick="setDir(0,1)" aria-label="Abajo">⬇️</button>
-  <button onclick="setDir(1,0)" aria-label="Derecha">➡️</button>
-</div>
+  <div class="status" id="status">Elige un modo y pulsa Jugar.</div>
+
+  <div class="joystick-area">
+    <div class="joystick" id="joystick" aria-label="Joystick táctil">
+      <div class="knob" id="joyKnob"></div>
+    </div>
+  </div>
+  <div class="hint">Usa el joystick o desliza el dedo sobre el tablero.</div>
+</main>
 
 <script>
-"use strict";
+(() => {
+  "use strict";
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const size = 20;
-const cells = 20;
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const $ = id => document.getElementById(id);
 
-let snake = [];
-let food = null;
-let direction = {x:1,y:0};
-let nextDirection = {x:1,y:0};
+  const scoreEl = $("score");
+  const bestEl = $("best");
+  const overlay = $("overlay");
+  const overlayTitle = $("overlayTitle");
+  const overlayText = $("overlayText");
+  const statusEl = $("status");
+  const playBtn = $("playBtn");
+  const pauseBtn = $("pauseBtn");
+  const restartBtn = $("restartBtn");
+  const overlayPlayBtn = $("overlayPlayBtn");
+  const joystick = $("joystick");
+  const joyKnob = $("joyKnob");
 
-let score = 0;
-let coins = Number(localStorage.getItem("snakeCoins") || 0);
-let best = Number(localStorage.getItem("snakeBest") || 0);
+  const cells = 20;
+  const cellSize = canvas.width / cells;
 
-let walls = true;
-let running = false;
-let shield = false;
+  let snake = [];
+  let food = { x: 12, y: 10 };
+  let dir = { x: 1, y: 0 };
+  let nextDir = { x: 1, y: 0 };
+  let score = 0;
+  let best = 0;
+  let wallMode = true;
+  let running = false;
+  let paused = false;
+  let over = false;
+  let timer = null;
+  let speed = 135;
+  let soundOn = true;
+  let audioContext = null;
+  let touchStart = null;
 
-let speedUntil = 0;
-let slowUntil = 0;
-let loop = null;
-let lastTick = 0;
-
-const scoreEl = document.getElementById("score");
-const coinsEl = document.getElementById("coins");
-const bestEl = document.getElementById("best");
-const messageEl = document.getElementById("message");
-const powerEl = document.getElementById("powerStatus");
-
-function updateStats(){
-  scoreEl.textContent = score;
-  coinsEl.textContent = coins;
+  try {
+    best = Number(localStorage.getItem("snakepro-neon-best")) || 0;
+  } catch (_) {}
   bestEl.textContent = best;
 
-  localStorage.setItem("snakeCoins", String(coins));
-  localStorage.setItem("snakeBest", String(best));
-}
+  function playTone(freq = 440, duration = 0.07) {
+    if (!soundOn) return;
+    try {
+      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === "suspended") audioContext.resume();
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.value = 0.06;
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.start();
+      osc.stop(audioContext.currentTime + duration);
+    } catch (_) {}
+  }
 
-function randomFood(){
-  let p;
-  do {
-    p = {
-      x: Math.floor(Math.random()*cells),
-      y: Math.floor(Math.random()*cells)
+  function updateScore() {
+    scoreEl.textContent = score;
+    bestEl.textContent = best;
+  }
+
+  function showOverlay(title, message) {
+    overlayTitle.textContent = title;
+    overlayText.textContent = message;
+    overlay.classList.remove("hidden");
+  }
+
+  function hideOverlay() {
+    overlay.classList.add("hidden");
+  }
+
+  function updateModeButtons() {
+    const ids = [
+      ["wallModeBtn", true],
+      ["wallModeBtnMenu", true],
+      ["noWallModeBtn", false],
+      ["noWallModeBtnMenu", false]
+    ];
+    ids.forEach(([id, mode]) => {
+      $(id).classList.toggle("active", wallMode === mode);
+    });
+  }
+
+  function stopTimer() {
+    if (timer !== null) {
+      clearInterval(timer);
+      timer = null;
+    }
+  }
+
+  function scheduleLoop() {
+    stopTimer();
+    timer = setInterval(tick, speed);
+  }
+
+  function placeFood() {
+    let attempts = 0;
+    do {
+      food = {
+        x: Math.floor(Math.random() * cells),
+        y: Math.floor(Math.random() * cells)
+      };
+      attempts++;
+    } while (snake.some(p => p.x === food.x && p.y === food.y) && attempts < 1000);
+  }
+
+  function reset() {
+    stopTimer();
+    snake = [
+      { x: 8, y: 10 },
+      { x: 7, y: 10 },
+      { x: 6, y: 10 }
+    ];
+    dir = { x: 1, y: 0 };
+    nextDir = { x: 1, y: 0 };
+    score = 0;
+    running = false;
+    paused = false;
+    over = false;
+    placeFood();
+    updateScore();
+    playBtn.textContent = "▶ Jugar";
+    pauseBtn.textContent = "Ⅱ Pausar";
+    statusEl.textContent = wallMode
+      ? "Modo con paredes seleccionado."
+      : "Modo sin paredes seleccionado.";
+    draw();
+  }
+
+  function chooseWallMode(withWalls) {
+    wallMode = withWalls;
+    updateModeButtons();
+    reset();
+    showOverlay(
+      withWalls ? "🧱 Modo con paredes" : "♾️ Modo sin paredes",
+      withWalls
+        ? "¡Cuidado! Si tocas un borde, pierdes. Pulsa Comenzar partida."
+        : "¡Cruza los bordes y aparece por el lado contrario! Pulsa Comenzar partida."
+    );
+  }
+
+  function setDirection(x, y) {
+    if (x === -dir.x && y === -dir.y) return;
+    nextDir = { x, y };
+    if (!running && !over && !paused) {
+      // La dirección queda preparada para el inicio.
+    }
+  }
+
+  function gameOver(message = "¡Fin del juego!") {
+    running = false;
+    paused = false;
+    over = true;
+    stopTimer();
+    playTone(160, 0.22);
+    playBtn.textContent = "▶ Jugar otra vez";
+    pauseBtn.textContent = "Ⅱ Pausar";
+    statusEl.textContent = message;
+    showOverlay(message, "Puntuación: " + score + ". Pulsa Jugar otra vez para volver a intentarlo.");
+  }
+
+  function tick() {
+    if (!running || paused || over) return;
+
+    dir = { ...nextDir };
+    const head = {
+      x: snake[0].x + dir.x,
+      y: snake[0].y + dir.y
     };
-  } while(snake.some(s => s.x===p.x && s.y===p.y));
 
-  return p;
-}
+    if (wallMode) {
+      if (head.x < 0 || head.x >= cells || head.y < 0 || head.y >= cells) {
+        gameOver("¡Chocaste contra una pared!");
+        return;
+      }
+    } else {
+      head.x = (head.x + cells) % cells;
+      head.y = (head.y + cells) % cells;
+    }
 
-function startGame(){
-  clearInterval(loop);
+    const eating = head.x === food.x && head.y === food.y;
+    const bodyToCheck = eating ? snake : snake.slice(0, -1);
+    if (bodyToCheck.some(p => p.x === head.x && p.y === head.y)) {
+      gameOver("¡Chocaste contra tu cuerpo!");
+      return;
+    }
 
-  snake = [
-    {x:10,y:10},
-    {x:9,y:10},
-    {x:8,y:10}
-  ];
+    snake.unshift(head);
 
-  direction = {x:1,y:0};
-  nextDirection = {x:1,y:0};
+    if (eating) {
+      score += 10;
+      if (score > best) {
+        best = score;
+        try { localStorage.setItem("snakepro-neon-best", String(best)); } catch (_) {}
+      }
+      updateScore();
+      placeFood();
+      playTone(620, 0.06);
+    } else {
+      snake.pop();
+    }
 
-  score = 0;
-  shield = false;
-  speedUntil = 0;
-  slowUntil = 0;
+    draw();
+  }
 
-  food = randomFood();
-  running = true;
+  function roundedRect(x, y, w, h, r) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
 
-  messageEl.textContent = "¡Partida iniciada!";
-  updateStats();
-  refreshPower();
-  scheduleLoop();
-  draw();
-}
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#070b16";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-function getDelay(){
-  const now = Date.now();
+    ctx.strokeStyle = "#172642";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= cells; i++) {
+      const pos = i * cellSize;
+      ctx.beginPath();
+      ctx.moveTo(pos, 0);
+      ctx.lineTo(pos, canvas.height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, pos);
+      ctx.lineTo(canvas.width, pos);
+      ctx.stroke();
+    }
 
-  if(now < slowUntil) return 190;
-  if(now < speedUntil) return 65;
+    if (wallMode) {
+      ctx.strokeStyle = "#ff38d1";
+      ctx.lineWidth = 3;
+      ctx.shadowColor = "#ff38d1";
+      ctx.shadowBlur = 12;
+      ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+      ctx.shadowBlur = 0;
+    }
 
-  return 115;
-}
+    // Comida
+    const fx = food.x * cellSize + cellSize / 2;
+    const fy = food.y * cellSize + cellSize / 2;
+    ctx.save();
+    ctx.shadowColor = "#ff38d1";
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = "#ff38d1";
+    ctx.beginPath();
+    ctx.arc(fx, fy, cellSize * 0.34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
-function scheduleLoop(){
-  clearInterval(loop);
+    // Serpiente
+    snake.forEach((p, i) => {
+      const pad = i === 0 ? 2 : 3;
+      const x = p.x * cellSize + pad;
+      const y = p.y * cellSize + pad;
+      const size = cellSize - pad * 2;
 
-  loop = setInterval(() => {
-    if(!running) return;
+      ctx.save();
+      ctx.shadowColor = i === 0 ? "#00f5ff" : "#39ff88";
+      ctx.shadowBlur = i === 0 ? 18 : 9;
+      ctx.fillStyle = i === 0 ? "#00f5ff" : "#39ff88";
+      roundedRect(x, y, size, size, 5);
+      ctx.fill();
+      ctx.restore();
 
-    const oldDelay = getDelay();
+      if (i === 0) {
+        ctx.fillStyle = "#07111c";
+        let ex1 = x + size * 0.32;
+        let ey1 = y + size * 0.32;
+        let ex2 = x + size * 0.68;
+        let ey2 = y + size * 0.32;
+        if (dir.x !== 0) {
+          ex1 = x + size * 0.55;
+          ex2 = x + size * 0.55;
+          ey1 = y + size * 0.3;
+          ey2 = y + size * 0.7;
+        } else if (dir.y < 0) {
+          ey1 = y + size * 0.35;
+          ey2 = ey1;
+        } else {
+          ey1 = y + size * 0.65;
+          ey2 = ey1;
+        }
+        ctx.beginPath();
+        ctx.arc(ex1, ey1, 2, 0, Math.PI * 2);
+        ctx.arc(ex2, ey2, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  }
 
-    tick();
+  function start() {
+    if (running && !paused) return;
 
-    if(!running) return;
+    if (over) reset();
+    running = true;
+    paused = false;
+    over = false;
+    hideOverlay();
+    playBtn.textContent = "▶ En juego";
+    pauseBtn.textContent = "Ⅱ Pausar";
+    statusEl.textContent = wallMode ? "¡A jugar! Evita las paredes." : "¡A jugar! Puedes cruzar los bordes.";
+    scheduleLoop();
+    playTone(440, 0.06);
+  }
 
-    const newDelay = getDelay();
+  function togglePause() {
+    if (over) return;
 
-    // Reprogramar el ciclo cuando cambia la velocidad.
-    if(oldDelay !== newDelay){
+    if (!running) {
+      start();
+      return;
+    }
+
+    paused = !paused;
+    if (paused) {
+      stopTimer();
+      pauseBtn.textContent = "▶ Continuar";
+      statusEl.textContent = "Partida pausada.";
+      showOverlay("⏸ Partida pausada", "Pulsa Continuar para seguir jugando.");
+      overlayPlayBtn.textContent = "▶ Continuar";
+    } else {
+      hideOverlay();
+      pauseBtn.textContent = "Ⅱ Pausar";
+      statusEl.textContent = "¡Continúa jugando!";
+      overlayPlayBtn.textContent = "▶ Comenzar partida";
       scheduleLoop();
     }
-
-    refreshPower();
-  }, getDelay());
-}
-
-function setDir(x,y){
-  if(!running) return;
-
-  // Impide girar directamente hacia el cuerpo.
-  if(x === -direction.x && y === -direction.y) return;
-
-  nextDirection = {x,y};
-}
-
-function toggleWalls(){
-  walls = !walls;
-
-  document.getElementById("wallLabel").textContent =
-    walls ? "Sí" : "No";
-
-  messageEl.textContent = walls
-    ? "Las paredes están activadas."
-    : "Puedes atravesar los bordes.";
-}
-
-function buyPower(type){
-  if(!running){
-    messageEl.textContent = "Pulsa Jugar antes de comprar poderes.";
-    return;
   }
 
-  if(type === "shield"){
-    if(shield){
-      messageEl.textContent = "Ya tienes un escudo preparado.";
-      return;
-    }
-
-    if(coins < 30){
-      messageEl.textContent = "Necesitas 30 monedas para el escudo.";
-      return;
-    }
-
-    coins -= 30;
-    shield = true;
-
-    messageEl.textContent =
-      "🛡️ Escudo listo: bloqueará una colisión.";
+  function restart() {
+    reset();
+    showOverlay("¡Nueva partida!", "Elige un modo si quieres cambiarlo y pulsa Comenzar partida.");
+    overlayPlayBtn.textContent = "▶ Comenzar partida";
   }
 
-  if(type === "fast" || type === "slow"){
-    if(coins < 20){
-      messageEl.textContent = "Necesitas 20 monedas para este poder.";
-      return;
-    }
+  // Botones de modos: ambos lugares actualizan el mismo modo.
+  $("wallModeBtn").addEventListener("click", () => chooseWallMode(true));
+  $("wallModeBtnMenu").addEventListener("click", () => chooseWallMode(true));
+  $("noWallModeBtn").addEventListener("click", () => chooseWallMode(false));
+  $("noWallModeBtnMenu").addEventListener("click", () => chooseWallMode(false));
 
-    coins -= 20;
-
-    if(type === "fast"){
-      speedUntil = Date.now() + 5000;
-      slowUntil = 0;
-
-      messageEl.textContent =
-        "🐇 ¡Velocidad aumentada durante 5 segundos!";
+  playBtn.addEventListener("click", start);
+  overlayPlayBtn.addEventListener("click", () => {
+    if (paused && running) {
+      paused = false;
+      hideOverlay();
+      pauseBtn.textContent = "Ⅱ Pausar";
+      overlayPlayBtn.textContent = "▶ Comenzar partida";
+      statusEl.textContent = "¡Continúa jugando!";
+      scheduleLoop();
     } else {
-      slowUntil = Date.now() + 5000;
-      speedUntil = 0;
-
-      messageEl.textContent =
-        "🐢 Velocidad reducida durante 5 segundos.";
+      start();
     }
-
-    scheduleLoop();
-  }
-
-  updateStats();
-  refreshPower();
-}
-
-function refreshPower(){
-  const now = Date.now();
-  const active = [];
-
-  if(shield) active.push("🛡️ Escudo disponible");
-  if(now < speedUntil) active.push("🐇 Velocidad");
-  if(now < slowUntil) active.push("🐢 Lentitud");
-
-  powerEl.textContent = active.length
-    ? active.join(" · ")
-    : "Sin poderes activos";
-}
-
-function tick(){
-  if(!running) return;
-
-  direction = nextDirection;
-
-  const head = {
-    x: snake[0].x + direction.x,
-    y: snake[0].y + direction.y
-  };
-
-  // Modo sin paredes: reaparecer por el borde contrario.
-  if(!walls){
-    head.x = (head.x + cells) % cells;
-    head.y = (head.y + cells) % cells;
-  }
-
-  // Colisión con paredes.
-  else if(
-    head.x < 0 || head.y < 0 ||
-    head.x >= cells || head.y >= cells
-  ){
-    if(shield){
-      shield = false;
-      messageEl.textContent =
-        "🛡️ ¡El escudo bloqueó el choque!";
-
-      refreshPower();
-      updateStats();
-      return;
-    }
-
-    gameOver();
-    return;
-  }
-
-  const eating =
-    head.x === food.x && head.y === food.y;
-
-  // Si no come, la cola se moverá y esa casilla queda libre.
-  const body = eating ? snake : snake.slice(0,-1);
-
-  const hitSelf = body.some(
-    part => part.x === head.x && part.y === head.y
-  );
-
-  if(hitSelf){
-    if(shield){
-      shield = false;
-      messageEl.textContent =
-        "🛡️ El escudo bloqueó la colisión con tu cuerpo.";
-
-      refreshPower();
-      updateStats();
-      return;
-    }
-
-    gameOver();
-    return;
-  }
-
-  snake.unshift(head);
-
-  if(eating){
-    score += 10;
-    coins += 5;
-
-    if(score > best) best = score;
-
-    food = randomFood();
-
-    messageEl.textContent = "¡+10 puntos y +5 monedas!";
-    updateStats();
-  } else {
-    snake.pop();
-  }
-
-  draw();
-}
-
-function gameOver(){
-  running = false;
-  clearInterval(loop);
-
-  messageEl.textContent =
-    "💥 Fin de la partida. Pulsa Jugar para intentarlo de nuevo.";
-
-  draw();
-}
-
-function draw(){
-  ctx.fillStyle = "#050914";
-  ctx.fillRect(0,0,400,400);
-
-  // Cuadrícula neón.
-  ctx.strokeStyle = "#101f35";
-  ctx.lineWidth = 1;
-
-  for(let i=0;i<=400;i+=size){
-    ctx.beginPath();
-    ctx.moveTo(i,0);
-    ctx.lineTo(i,400);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0,i);
-    ctx.lineTo(400,i);
-    ctx.stroke();
-  }
-
-  // Comida.
-  if(food){
-    ctx.shadowColor = "#ff3978";
-    ctx.shadowBlur = 16;
-    ctx.fillStyle = "#ff3978";
-
-    ctx.beginPath();
-    ctx.arc(
-      food.x*size+10,
-      food.y*size+10,
-      7,0,Math.PI*2
-    );
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-  }
-
-  // Serpiente.
-  snake.forEach((part,i)=>{
-    ctx.fillStyle = i===0 ? "#faffff" : "#00eaff";
-    ctx.shadowColor = "#00eaff";
-    ctx.shadowBlur = i===0 ? 15 : 7;
-
-    ctx.fillRect(
-      part.x*size+2,
-      part.y*size+2,
-      size-4,
-      size-4
-    );
   });
 
-  ctx.shadowBlur = 0;
-}
+  pauseBtn.addEventListener("click", togglePause);
+  restartBtn.addEventListener("click", restart);
 
-document.addEventListener("keydown",e=>{
-  const keys = {
-    ArrowUp:[0,-1],
-    w:[0,-1],
-    ArrowDown:[0,1],
-    s:[0,1],
-    ArrowLeft:[-1,0],
-    a:[-1,0],
-    ArrowRight:[1,0],
-    d:[1,0]
-  };
+  // Teclado para probar en un computador.
+  document.addEventListener("keydown", e => {
+    const keys = {
+      ArrowUp: [0, -1], w: [0, -1], W: [0, -1],
+      ArrowDown: [0, 1], s: [0, 1], S: [0, 1],
+      ArrowLeft: [-1, 0], a: [-1, 0], A: [-1, 0],
+      ArrowRight: [1, 0], d: [1, 0], D: [1, 0]
+    };
+    if (keys[e.key]) {
+      e.preventDefault();
+      setDirection(keys[e.key][0], keys[e.key][1]);
+    }
+    if (e.key === " " || e.key === "Escape") {
+      e.preventDefault();
+      togglePause();
+    }
+  });
 
-  const key = keys[e.key];
+  // Deslizar sobre el tablero.
+  canvas.addEventListener("pointerdown", e => {
+    touchStart = { x: e.clientX, y: e.clientY };
+  });
 
-  if(key){
-    e.preventDefault();
-    setDir(key[0],key[1]);
+  canvas.addEventListener("pointerup", e => {
+    if (!touchStart) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    touchStart = null;
+
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 12) return;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      setDirection(dx > 0 ? 1 : -1, 0);
+    } else {
+      setDirection(0, dy > 0 ? 1 : -1);
+    }
+  });
+
+  // Joystick táctil.
+  let joystickPointer = null;
+
+  function moveJoystick(e) {
+    const rect = joystick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const max = rect.width * 0.28;
+    const distance = Math.hypot(dx, dy) || 1;
+    const scale = Math.min(1, max / distance);
+
+    joyKnob.style.left = (rect.width / 2 - joyKnob.offsetWidth / 2 + dx * scale) + "px";
+    joyKnob.style.top = (rect.height / 2 - joyKnob.offsetHeight / 2 + dy * scale) + "px";
+
+    if (Math.max(Math.abs(dx), Math.abs(dy)) > 12) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setDirection(dx > 0 ? 1 : -1, 0);
+      } else {
+        setDirection(0, dy > 0 ? 1 : -1);
+      }
+    }
   }
-});
 
-updateStats();
-startGame();
+  function resetJoystick() {
+    joyKnob.style.left = (joystick.clientWidth / 2 - joyKnob.offsetWidth / 2) + "px";
+    joyKnob.style.top = (joystick.clientHeight / 2 - joyKnob.offsetHeight / 2) + "px";
+    joystickPointer = null;
+  }
+
+  joystick.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    joystickPointer = e.pointerId;
+    try { joystick.setPointerCapture(e.pointerId); } catch (_) {}
+    moveJoystick(e);
+  });
+
+  joystick.addEventListener("pointermove", e => {
+    if (e.pointerId === joystickPointer) {
+      e.preventDefault();
+      moveJoystick(e);
+    }
+  });
+
+  joystick.addEventListener("pointerup", e => {
+    if (e.pointerId === joystickPointer) resetJoystick();
+  });
+  joystick.addEventListener("pointercancel", resetJoystick);
+  window.addEventListener("resize", resetJoystick);
+
+  updateModeButtons();
+  resetJoystick();
+  reset();
+  showOverlay("¿Listo para jugar?", "Elige un modo de juego y pulsa Comenzar partida.");
+})();
 </script>
 </body>
 </html>
