@@ -190,20 +190,74 @@ h1 {
   fill:url(#menuSnakeGradient);
   stroke:#c5ffff;
   stroke-width:1;
+  transform-box:fill-box;
+  transform-origin:center;
+  animation:menuSnakeWave .65s ease-in-out infinite alternate;
 }
-#menuSnake .snake-eye { fill:#fff; }
+#menuSnake .snake-segment:nth-of-type(1) { animation-delay:-.55s; }
+#menuSnake .snake-segment:nth-of-type(2) { animation-delay:-.44s; }
+#menuSnake .snake-segment:nth-of-type(3) { animation-delay:-.33s; }
+#menuSnake .snake-segment:nth-of-type(4) { animation-delay:-.22s; }
+#menuSnake .snake-segment:nth-of-type(5) { animation-delay:-.11s; }
+#menuSnake .snake-segment:nth-of-type(6) { animation-delay:0s; }
+
+#menuSnake .snake-eye {
+  fill:#fff;
+  animation:menuSnakeEyeWave .65s ease-in-out infinite alternate;
+}
+#menuSnake .snake-eye:nth-of-type(1) { animation-delay:-.04s; }
+#menuSnake .snake-eye:nth-of-type(2) { animation-delay:0s; }
+
 #menuSnake #menuSnakeBody {
-  animation:menuSnakeMove 6s linear infinite;
+  animation:menuSnakeMove 7s ease-in-out infinite;
+  will-change:transform;
 }
+
+/* Avanza y regresa suavemente */
 @keyframes menuSnakeMove {
-  0% { transform:translate(0px,0px); }
-  25% { transform:translate(80px,-10px); }
-  50% { transform:translate(180px,7px); }
-  75% { transform:translate(280px,-7px); }
-  100% { transform:translate(400px,0px); }
+  0% {
+    transform:translate(0px,0px);
+  }
+  25% {
+    transform:translate(70px,0px);
+  }
+  50% {
+    transform:translate(280px,0px);
+  }
+  75% {
+    transform:translate(70px,0px);
+  }
+  100% {
+    transform:translate(0px,0px);
+  }
 }
+
+/* Cada segmento se mueve con un desfase para simular
+   una onda que recorre el cuerpo de la serpiente */
+@keyframes menuSnakeWave {
+  0% {
+    transform:translateY(-5px) rotate(-5deg);
+  }
+  50% {
+    transform:translateY(0px) rotate(0deg);
+  }
+  100% {
+    transform:translateY(5px) rotate(5deg);
+  }
+}
+
+/* Los ojos acompañan el movimiento de la cabeza */
+@keyframes menuSnakeEyeWave {
+  0% { transform:translateY(-2px); }
+  100% { transform:translateY(2px); }
+}
+
 @media(prefers-reduced-motion:reduce) {
-  #menuSnake #menuSnakeBody { animation:none; }
+  #menuSnake #menuSnakeBody,
+  #menuSnake .snake-segment,
+  #menuSnake .snake-eye {
+    animation:none;
+  }
 }
 
 /* MARCADORES Y TABLERO */
