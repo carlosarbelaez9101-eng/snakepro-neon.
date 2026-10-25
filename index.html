@@ -10,7 +10,6 @@
 <style>
 :root {
   --bg:#050816;
-  --panel:#10172b;
   --cyan:#00f7ff;
   --green:#39ff14;
   --pink:#ff2bd6;
@@ -37,7 +36,7 @@ h1 {
   width:min(100%,480px);
   margin:12px auto;
   padding:18px;
-  background:#10172beF;
+  background:#10172bef;
   border:1px solid #00f7ff55;
   border-radius:20px;
   box-shadow:0 0 25px #00f7ff12;
@@ -65,11 +64,6 @@ button.green {
   color:#031006;
   border-color:#39ff14;
 }
-button.pink {
-  background:linear-gradient(135deg,#ff2bd6,#912cff);
-  border-color:#ff2bd6;
-}
-button:focus-visible { outline:2px solid white; }
 .hidden { display:none !important; }
 
 .stats {
@@ -110,6 +104,7 @@ button:focus-visible { outline:2px solid white; }
   margin-top:8px;
 }
 .game-buttons button { flex:1 1 100px; }
+
 #joystick {
   width:180px;
   margin:16px auto 0;
@@ -140,7 +135,7 @@ button:focus-visible { outline:2px solid white; }
   align-items:center;
   justify-content:center;
   padding:20px;
-  background:#02040deF;
+  background:#02040def;
   backdrop-filter:blur(8px);
 }
 .end-card {
@@ -151,14 +146,14 @@ button:focus-visible { outline:2px solid white; }
   animation:appear .45s ease-out;
 }
 .end-card.victory {
-  border:2px solid #39ff14;
+  border:2px solid var(--green);
   box-shadow:0 0 35px #39ff1433;
 }
 .end-card.defeat {
   border:2px solid #ff2b76;
   box-shadow:0 0 35px #ff2b7633;
 }
-.end-icon { font-size:64px; margin-bottom:5px; }
+.end-icon { font-size:64px; }
 .end-title { font-size:32px; font-weight:1000; margin:5px 0 10px; }
 .victory .end-title { color:var(--green); text-shadow:0 0 18px #39ff1477; }
 .defeat .end-title { color:#ff477e; text-shadow:0 0 18px #ff477e77; }
@@ -288,6 +283,7 @@ function saveBest() {
 }
 
 function startGame(withWalls) {
+  clearTimeout(timer);
   walls = withWalls;
   score = 0;
   level = 1;
@@ -297,14 +293,17 @@ function startGame(withWalls) {
   paused = false;
   ended = false;
   running = true;
+
   $("menu").classList.add("hidden");
   $("gamePanel").classList.remove("hidden");
   $("endScreen").classList.add("hidden");
   $("pauseBtn").textContent = "⏸ Pausar";
+
   loadBest();
   createObstacles();
   placeFood();
   updateStats();
+  draw();
   playSound(520,.09);
   runLoop();
 }
@@ -330,7 +329,7 @@ function togglePause() {
   paused = !paused;
   $("pauseBtn").textContent = paused ? "▶ Continuar" : "⏸ Pausar";
   if (!paused) runLoop();
-  else draw();
+  draw();
 }
 
 function toggleSound() {
@@ -366,7 +365,6 @@ function createObstacles() {
     if (snake.some(p=>p.x===x && p.y===y)) return;
     obstacles.push({x,y});
   };
-
   const lineH = (y,x1,x2,skip=[]) => {
     for (let x=x1;x<=x2;x++) if (!skip.includes(x)) add(x,y);
   };
@@ -383,9 +381,8 @@ function createObstacles() {
       lineV(14,4,18,[8,14]);
       break;
     case 3:
-      for(let x of [4,9,14,17]) {
+      for(let x of [4,9,14,17])
         for(let y=4;y<=16;y+=4) add(x,y);
-      }
       break;
     case 4:
       lineH(5,3,17,[6,13]);
@@ -437,18 +434,16 @@ function occupied(x,y) {
 }
 
 function placeFood() {
-  let tries = 0;
-  do {
-    food = {
-      x: Math.floor(Math.random()*SIZE),
-      y: Math.floor(Math.random()*SIZE)
-    };
-    tries++;
-  } while(occupied(food.x,food.y) && tries<1000);
+  const empty = [];
+  for(let y=0;y<SIZE;y++)
+    for(let x=0;x<SIZE;x++)
+      if(!occupied(x,y)) empty.push({x,y});
 
-  if(occupied(food.x,food.y)) {
+  if(empty.length===0) {
     finishGame(true);
+    return;
   }
+  food = empty[Math.floor(Math.random()*empty.length)];
 }
 
 function updateStats() {
@@ -505,7 +500,7 @@ function step() {
     playSound(760,.1,"triangle");
     saveBest();
 
-    if (mode==="levels" && score>0 && score%50===0) {
+    if (mode==="levels" && score%50===0) {
       if (level>=10) {
         updateStats();
         draw();
@@ -515,11 +510,13 @@ function step() {
       level++;
       createObstacles();
       playSound(950,.18,"sine");
-    } else if (mode==="infinite" && score>0 && score%50===0) {
+    } else if (mode==="infinite" && score%50===0) {
       level++;
       playSound(950,.18,"sine");
     }
+
     placeFood();
+    if (ended) return;
     updateStats();
   } else {
     snake.pop();
@@ -533,6 +530,7 @@ function drawBackground() {
   ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.strokeStyle="#10213b";
   ctx.lineWidth=.6;
+
   for(let i=0;i<=SIZE;i++){
     const p=i*CELL;
     ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,canvas.height);ctx.stroke();
@@ -583,6 +581,7 @@ function draw() {
 
 function finishGame(victory) {
   if (ended) return;
+
   ended = true;
   running = false;
   paused = false;
@@ -596,28 +595,17 @@ function finishGame(victory) {
   $("endTitle").textContent = victory ? "¡VICTORIA!" : "¡GAME OVER!";
   $("endMessage").textContent = victory
     ? "¡Increíble! Has completado los 10 niveles de SnakePro Neon."
-    : "La serpiente ha chocado. ¡Respira, inténtalo de nuevo y supera tu récord!";
+    : "¡La serpiente ha chocado! Inténtalo de nuevo y supera tu récord.";
   $("endScore").textContent = "Puntos: " + score + " · Récord: " + best;
   $("endScreen").classList.remove("hidden");
+
   playSound(victory?1050:170,.35,victory?"triangle":"sawtooth");
 }
 
-function togglePauseSafe() {
-  if (!running || ended) return;
-  paused = !paused;
-  $("pauseBtn").textContent = paused ? "▶ Continuar" : "⏸ Pausar";
-  if (!paused) runLoop();
-  draw();
-}
-
-/* Controles táctiles */
 $("up").addEventListener("click",()=>setDirection(0,-1));
 $("down").addEventListener("click",()=>setDirection(0,1));
 $("left").addEventListener("click",()=>setDirection(-1,0));
 $("right").addEventListener("click",()=>setDirection(1,0));
-
-/* Reasignar el botón de pausa a la función segura */
-$("pauseBtn").onclick = togglePauseSafe;
 
 document.addEventListener("keydown",e=>{
   const keys = {
@@ -626,13 +614,14 @@ document.addEventListener("keydown",e=>{
     ArrowLeft:[-1,0], a:[-1,0],
     ArrowRight:[1,0], d:[1,0]
   };
-  if(keys[e.key]){
+
+  if(keys[e.key]) {
     e.preventDefault();
     setDirection(...keys[e.key]);
   }
-  if(e.key===" "){
+  if(e.key===" ") {
     e.preventDefault();
-    togglePauseSafe();
+    togglePause();
   }
 });
 
@@ -646,7 +635,8 @@ canvas.addEventListener("touchend",e=>{
   const t=e.changedTouches[0];
   const dx=t.clientX-touchStart.x;
   const dy=t.clientY-touchStart.y;
-  if(Math.max(Math.abs(dx),Math.abs(dy))>18){
+
+  if(Math.max(Math.abs(dx),Math.abs(dy))>18) {
     if(Math.abs(dx)>Math.abs(dy)) setDirection(dx>0?1:-1,0);
     else setDirection(0,dy>0?1:-1);
   }
