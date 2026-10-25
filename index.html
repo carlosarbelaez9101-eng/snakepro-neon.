@@ -95,8 +95,8 @@ button{touch-action:manipulation}
   <p id="overlayText">Elige tu modo de juego.</p>
 
   <div class="mode-buttons">
-    <button id="wallModeBtn" type="button">🧱 Con paredes</button>
-    <button id="noWallModeBtn" type="button">♾️ Sin paredes</button>
+    <button id="wallModeBtn" type="button" onclick="chooseWallMode(true)">🧱 Con paredes</button>
+<button id="noWallModeBtn" type="button" onclick="chooseWallMode(false)">♾️ Sin paredes</button>
   </div>
 </div>
 </div>
@@ -160,6 +160,10 @@ function reset(){
 snake=[{x:8,y:9},{x:7,y:9},{x:6,y:9}];dir={x:1,y:0};nextDir={x:1,y:0};score=0;running=false;paused=false;over=false;
 placeFood();updateScore();draw();showOverlay("¿Listo para jugar?","Pulsa Jugar y dirige la serpiente con el joystick o deslizando el dedo.");
 playBtn.textContent="▶ Jugar";pauseBtn.textContent="Ⅱ Pausar";
+}function chooseWallMode(withWalls){
+  wallMode = withWalls;
+  reset();
+  start();
 }
 function placeFood(){do{food={x:Math.floor(Math.random()*cells),y:Math.floor(Math.random()*cells)}}while(snake&&snake.some(p=>p.x===food.x&&p.y===food.y))}
 function updateScore(){scoreEl.textContent=score;bestEl.textContent=best}
