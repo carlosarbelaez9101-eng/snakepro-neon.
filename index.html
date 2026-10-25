@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#080b18">
-<meta name="description" content="SnakePro Neon: juega al clásico juego de la serpiente con estilo neón.">
+<meta name="description" content="SnakePro Neon: 10 niveles de serpiente con obstáculos, estilo neón y desafíos progresivos.">
 <title>SnakePro Neon</title>
 
 <style>
@@ -39,19 +39,22 @@ h1 {
   text-shadow: 0 0 8px #00f5ff, 0 0 24px #0077ff;
 }
 .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
-.stats { display: flex; gap: 10px; margin-bottom: 12px; }
+.stats { display: flex; gap: 8px; margin-bottom: 12px; }
 .stat {
-  flex: 1; padding: 11px 8px; border: 1px solid #283b61;
+  flex: 1; min-width: 0; padding: 11px 5px;
+  border: 1px solid #283b61;
   background: #0d1426; border-radius: 14px;
 }
-.stat span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; }
-.stat strong { display: block; color: var(--green); font-size: 24px; }
+.stat span {
+  display: block; color: var(--muted);
+  font-size: 10px; text-transform: uppercase;
+}
+.stat strong { display: block; color: var(--green); font-size: 23px; }
 .game-wrap {
   position: relative; width: 100%; overflow: hidden;
   border: 2px solid var(--cyan); border-radius: 16px;
   box-shadow: 0 0 12px #00f5ff66, inset 0 0 20px #00f5ff12;
-  background: #070b16;
-  touch-action: none;
+  background: #070b16; touch-action: none;
 }
 canvas { display: block; width: 100%; height: auto; aspect-ratio: 1; }
 .overlay {
@@ -124,20 +127,22 @@ button.pink { border-color: #ff38d180; }
 <body>
 <main class="app">
   <h1>🐍 SnakePro Neon</h1>
-  <div class="subtitle">EL CLÁSICO JUEGO · EDICIÓN NEÓN</div>
+  <div class="subtitle">10 NIVELES · DESAFÍO NEÓN</div>
 
   <div class="stats">
+    <div class="stat"><span>Nivel</span><strong id="level">1/10</strong></div>
     <div class="stat"><span>Puntuación</span><strong id="score">0</strong></div>
     <div class="stat"><span>Récord</span><strong id="best">0</strong></div>
   </div>
 
   <div class="game-wrap">
-    <canvas id="game" width="400" height="400" aria-label="Tablero del juego SnakePro Neon"></canvas>
+    <canvas id="game" width="400" height="400"
+      aria-label="Tablero del juego SnakePro Neon"></canvas>
 
     <div class="overlay" id="overlay">
       <div class="overlay-card">
         <h2 id="overlayTitle">SnakePro Neon</h2>
-        <p id="overlayText">Elige un modo y comienza a jugar.</p>
+        <p id="overlayText">Elige un modo y comienza el desafío.</p>
         <div class="section-label">ELIGE TU MODO</div>
         <div class="modes">
           <button id="wallModeBtnMenu" class="active">🧱 Con paredes</button>
@@ -180,6 +185,7 @@ button.pink { border-color: #ff38d180; }
 
   const scoreEl = $("score");
   const bestEl = $("best");
+  const levelEl = $("level");
   const overlay = $("overlay");
   const overlayTitle = $("overlayTitle");
   const overlayText = $("overlayText");
@@ -193,6 +199,8 @@ button.pink { border-color: #ff38d180; }
 
   const cells = 20;
   const cellSize = canvas.width / cells;
+  const FOODS_TO_COMPLETE = 5;
+  const MAX_LEVEL = 10;
 
   let snake = [];
   let food = { x: 12, y: 10 };
@@ -200,32 +208,52 @@ button.pink { border-color: #ff38d180; }
   let nextDir = { x: 1, y: 0 };
   let score = 0;
   let best = 0;
+  let currentLevel = 1;
+  let unlockedLevel = 1;
+  let foodsInLevel = 0;
+  let obstacles = [];
+
   let wallMode = true;
   let running = false;
   let paused = false;
   let over = false;
+  let levelComplete = false;
   let timer = null;
   let speed = 135;
   let soundOn = true;
   let audioContext = null;
   let touchStart = null;
+  let joystickPointer = null;
 
   try {
     best = Number(localStorage.getItem("snakepro-neon-best")) || 0;
+    unlockedLevel = Math.max(
+      1,
+      Math.min(
+        MAX_LEVEL,
+        Number(localStorage.getItem("snakepro-neon-unlocked")) || 1
+      )
+    );
   } catch (_) {}
-  bestEl.textContent = best;
 
   function playTone(freq = 440, duration = 0.07) {
     if (!soundOn) return;
     try {
-      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      audioContext = audioContext ||
+        new (window.AudioContext || window.webkitAudioContext)();
+
       if (audioContext.state === "suspended") audioContext.resume();
+
       const osc = audioContext.createOscillator();
       const gain = audioContext.createGain();
+
       osc.type = "sine";
       osc.frequency.value = freq;
       gain.gain.value = 0.06;
-      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+      gain.gain.exponentialRampToValueAtTime(
+        0.001, audioContext.currentTime + duration
+      );
+
       osc.connect(gain);
       gain.connect(audioContext.destination);
       osc.start();
@@ -236,6 +264,7 @@ button.pink { border-color: #ff38d180; }
   function updateScore() {
     scoreEl.textContent = score;
     bestEl.textContent = best;
+    levelEl.textContent = currentLevel + "/" + MAX_LEVEL;
   }
 
   function showOverlay(title, message) {
@@ -249,13 +278,12 @@ button.pink { border-color: #ff38d180; }
   }
 
   function updateModeButtons() {
-    const ids = [
+    [
       ["wallModeBtn", true],
       ["wallModeBtnMenu", true],
       ["noWallModeBtn", false],
       ["noWallModeBtnMenu", false]
-    ];
-    ids.forEach(([id, mode]) => {
+    ].forEach(([id, mode]) => {
       $(id).classList.toggle("active", wallMode === mode);
     });
   }
@@ -272,83 +300,263 @@ button.pink { border-color: #ff38d180; }
     timer = setInterval(tick, speed);
   }
 
+  // Crea un mapa distinto para cada nivel.
+  function createObstacles() {
+    obstacles = [];
+
+    const addH = (x1, x2, y) => {
+      for (let x = x1; x <= x2; x++) {
+        obstacles.push({ x, y });
+      }
+    };
+
+    const addV = (x, y1, y2) => {
+      for (let y = y1; y <= y2; y++) {
+        obstacles.push({ x, y });
+      }
+    };
+
+    switch (currentLevel) {
+      case 1:
+        addH(2, 5, 4);
+        addH(14, 17, 15);
+        break;
+
+      case 2:
+        addV(4, 3, 7);
+        addV(15, 12, 16);
+        addH(8, 11, 4);
+        break;
+
+      case 3:
+        addV(3, 3, 8);
+        addV(16, 11, 16);
+        addH(8, 12, 5);
+        addH(7, 11, 14);
+        break;
+
+      case 4:
+        addH(2, 7, 4);
+        addH(12, 17, 7);
+        addH(2, 7, 13);
+        addH(12, 17, 16);
+        break;
+
+      case 5:
+        addV(5, 3, 7);
+        addV(14, 12, 16);
+        addH(8, 11, 4);
+        addH(8, 11, 15);
+        addV(10, 6, 8);
+        addV(10, 12, 13);
+        break;
+
+      case 6:
+        addH(2, 8, 3);
+        addH(11, 17, 6);
+        addH(2, 8, 9);
+        addH(11, 17, 12);
+        addH(2, 8, 16);
+        break;
+
+      case 7:
+        addV(3, 3, 6);
+        addV(6, 12, 16);
+        addV(10, 3, 7);
+        addV(13, 12, 16);
+        addV(17, 4, 8);
+        addH(8, 11, 14);
+        break;
+
+      case 8:
+        addH(3, 15, 3);
+        addV(15, 3, 8);
+        addH(6, 15, 8);
+        addV(6, 8, 13);
+        addH(6, 12, 13);
+        addV(12, 10, 13);
+        break;
+
+      case 9:
+        addH(2, 7, 3);
+        addH(12, 17, 3);
+        addH(2, 5, 7);
+        addH(14, 17, 7);
+        addV(4, 10, 16);
+        addV(15, 10, 16);
+        addH(7, 12, 16);
+        addV(9, 5, 7);
+        addV(11, 11, 14);
+        break;
+
+      case 10:
+        addH(2, 7, 3);
+        addH(12, 17, 3);
+        addV(3, 4, 8);
+        addV(16, 4, 8);
+        addH(6, 13, 7);
+        addV(6, 11, 15);
+        addV(13, 10, 15);
+        addH(8, 11, 11);
+        addH(8, 11, 16);
+        break;
+    }
+  }
+
+  // Coloca comida en una casilla libre.
   function placeFood() {
-    let attempts = 0;
-    do {
-      food = {
-        x: Math.floor(Math.random() * cells),
-        y: Math.floor(Math.random() * cells)
-      };
-      attempts++;
-    } while (snake.some(p => p.x === food.x && p.y === food.y) && attempts < 1000);
+    const freeCells = [];
+
+    for (let y = 0; y < cells; y++) {
+      for (let x = 0; x < cells; x++) {
+        const onSnake = snake.some(p => p.x === x && p.y === y);
+        const onObstacle = obstacles.some(p => p.x === x && p.y === y);
+
+        if (!onSnake && !onObstacle) {
+          freeCells.push({ x, y });
+        }
+      }
+    }
+
+    if (freeCells.length === 0) {
+      completeLevel();
+      return;
+    }
+
+    food = freeCells[Math.floor(Math.random() * freeCells.length)];
   }
 
   function reset() {
     stopTimer();
+
     snake = [
       { x: 8, y: 10 },
       { x: 7, y: 10 },
       { x: 6, y: 10 }
     ];
+
     dir = { x: 1, y: 0 };
     nextDir = { x: 1, y: 0 };
     score = 0;
+    foodsInLevel = 0;
     running = false;
     paused = false;
     over = false;
+    levelComplete = false;
+
+    createObstacles();
     placeFood();
     updateScore();
+
     playBtn.textContent = "▶ Jugar";
     pauseBtn.textContent = "Ⅱ Pausar";
+    overlayPlayBtn.textContent = "▶ Comenzar partida";
+
     statusEl.textContent = wallMode
-      ? "Modo con paredes seleccionado."
-      : "Modo sin paredes seleccionado.";
+      ? "Nivel " + currentLevel + ": ¡evita las paredes y los obstáculos!"
+      : "Nivel " + currentLevel + ": ¡cruza los bordes y evita los obstáculos!";
+
     draw();
   }
 
   function chooseWallMode(withWalls) {
+    if (running && !over && !levelComplete) return;
+
     wallMode = withWalls;
     updateModeButtons();
     reset();
+
     showOverlay(
       withWalls ? "🧱 Modo con paredes" : "♾️ Modo sin paredes",
       withWalls
-        ? "¡Cuidado! Si tocas un borde, pierdes. Pulsa Comenzar partida."
-        : "¡Cruza los bordes y aparece por el lado contrario! Pulsa Comenzar partida."
+        ? "Completa el nivel comiendo 5 alimentos. No toques las paredes ni los obstáculos."
+        : "Completa el nivel comiendo 5 alimentos. Puedes cruzar los bordes, pero evita los obstáculos."
     );
   }
 
   function setDirection(x, y) {
     if (x === -dir.x && y === -dir.y) return;
     nextDir = { x, y };
-    if (!running && !over && !paused) {
-      // La dirección queda preparada para el inicio.
-    }
   }
 
   function gameOver(message = "¡Fin del juego!") {
     running = false;
     paused = false;
     over = true;
+    levelComplete = false;
     stopTimer();
+
     playTone(160, 0.22);
     playBtn.textContent = "▶ Jugar otra vez";
     pauseBtn.textContent = "Ⅱ Pausar";
     statusEl.textContent = message;
-    showOverlay(message, "Puntuación: " + score + ". Pulsa Jugar otra vez para volver a intentarlo.");
+
+    showOverlay(
+      message,
+      "Puntuación: " + score +
+      ". Nivel: " + currentLevel +
+      ". Pulsa Jugar otra vez para intentarlo de nuevo."
+    );
+
+    overlayPlayBtn.textContent = "▶ Reintentar nivel";
+  }
+
+  // Completa el nivel y guarda el progreso desbloqueado.
+  function completeLevel() {
+    if (levelComplete) return;
+
+    stopTimer();
+    running = false;
+    paused = false;
+    over = false;
+    levelComplete = true;
+
+    playTone(880, 0.18);
+
+    if (currentLevel < MAX_LEVEL) {
+      unlockedLevel = Math.max(unlockedLevel, currentLevel + 1);
+
+      try {
+        localStorage.setItem(
+          "snakepro-neon-unlocked",
+          String(unlockedLevel)
+        );
+      } catch (_) {}
+
+      showOverlay(
+        "¡Nivel " + currentLevel + " completado!",
+        "¡Excelente! Has conseguido los 5 alimentos. El nivel " +
+        (currentLevel + 1) + " está desbloqueado."
+      );
+
+      overlayPlayBtn.textContent = "▶ Siguiente nivel";
+      statusEl.textContent = "¡Nivel completado! Puedes continuar.";
+    } else {
+      showOverlay(
+        "🏆 ¡Victoria!",
+        "¡Has superado los 10 niveles de SnakePro Neon!"
+      );
+
+      overlayPlayBtn.textContent = "↻ Volver al nivel 1";
+      statusEl.textContent = "¡Has conquistado todos los niveles!";
+    }
   }
 
   function tick() {
-    if (!running || paused || over) return;
+    if (!running || paused || over || levelComplete) return;
 
     dir = { ...nextDir };
+
     const head = {
       x: snake[0].x + dir.x,
       y: snake[0].y + dir.y
     };
 
     if (wallMode) {
-      if (head.x < 0 || head.x >= cells || head.y < 0 || head.y >= cells) {
+      if (
+        head.x < 0 || head.x >= cells ||
+        head.y < 0 || head.y >= cells
+      ) {
         gameOver("¡Chocaste contra una pared!");
         return;
       }
@@ -357,8 +565,15 @@ button.pink { border-color: #ff38d180; }
       head.y = (head.y + cells) % cells;
     }
 
+    // Los obstáculos son sólidos en ambos modos.
+    if (obstacles.some(p => p.x === head.x && p.y === head.y)) {
+      gameOver("¡Chocaste contra un obstáculo!");
+      return;
+    }
+
     const eating = head.x === food.x && head.y === food.y;
     const bodyToCheck = eating ? snake : snake.slice(0, -1);
+
     if (bodyToCheck.some(p => p.x === head.x && p.y === head.y)) {
       gameOver("¡Chocaste contra tu cuerpo!");
       return;
@@ -368,13 +583,25 @@ button.pink { border-color: #ff38d180; }
 
     if (eating) {
       score += 10;
+      foodsInLevel++;
+
       if (score > best) {
         best = score;
-        try { localStorage.setItem("snakepro-neon-best", String(best)); } catch (_) {}
+        try {
+          localStorage.setItem("snakepro-neon-best", String(best));
+        } catch (_) {}
       }
+
       updateScore();
-      placeFood();
       playTone(620, 0.06);
+
+      if (foodsInLevel >= FOODS_TO_COMPLETE) {
+        draw();
+        completeLevel();
+        return;
+      }
+
+      placeFood();
     } else {
       snake.pop();
     }
@@ -384,6 +611,7 @@ button.pink { border-color: #ff38d180; }
 
   function roundedRect(x, y, w, h, r) {
     const radius = Math.min(r, w / 2, h / 2);
+
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.arcTo(x + w, y, x + w, y + h, radius);
@@ -398,20 +626,25 @@ button.pink { border-color: #ff38d180; }
     ctx.fillStyle = "#070b16";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Cuadrícula.
     ctx.strokeStyle = "#172642";
     ctx.lineWidth = 1;
+
     for (let i = 0; i <= cells; i++) {
       const pos = i * cellSize;
+
       ctx.beginPath();
       ctx.moveTo(pos, 0);
       ctx.lineTo(pos, canvas.height);
       ctx.stroke();
+
       ctx.beginPath();
       ctx.moveTo(0, pos);
       ctx.lineTo(canvas.width, pos);
       ctx.stroke();
     }
 
+    // Borde exterior.
     if (wallMode) {
       ctx.strokeStyle = "#ff38d1";
       ctx.lineWidth = 3;
@@ -421,9 +654,32 @@ button.pink { border-color: #ff38d180; }
       ctx.shadowBlur = 0;
     }
 
-    // Comida
+    // Obstáculos.
+    ctx.save();
+    ctx.shadowColor = "#ff38d1";
+    ctx.shadowBlur = 10;
+
+    obstacles.forEach(p => {
+      const pad = 2;
+      const x = p.x * cellSize + pad;
+      const y = p.y * cellSize + pad;
+      const size = cellSize - pad * 2;
+
+      ctx.fillStyle = "#a21caf";
+      roundedRect(x, y, size, size, 4);
+      ctx.fill();
+
+      ctx.strokeStyle = "#ff38d1";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    ctx.restore();
+
+    // Comida.
     const fx = food.x * cellSize + cellSize / 2;
     const fy = food.y * cellSize + cellSize / 2;
+
     ctx.save();
     ctx.shadowColor = "#ff38d1";
     ctx.shadowBlur = 18;
@@ -433,7 +689,7 @@ button.pink { border-color: #ff38d180; }
     ctx.fill();
     ctx.restore();
 
-    // Serpiente
+    // Serpiente.
     snake.forEach((p, i) => {
       const pad = i === 0 ? 2 : 3;
       const x = p.x * cellSize + pad;
@@ -450,10 +706,12 @@ button.pink { border-color: #ff38d180; }
 
       if (i === 0) {
         ctx.fillStyle = "#07111c";
+
         let ex1 = x + size * 0.32;
         let ey1 = y + size * 0.32;
         let ex2 = x + size * 0.68;
         let ey2 = y + size * 0.32;
+
         if (dir.x !== 0) {
           ex1 = x + size * 0.55;
           ex2 = x + size * 0.55;
@@ -466,6 +724,7 @@ button.pink { border-color: #ff38d180; }
           ey1 = y + size * 0.65;
           ey2 = ey1;
         }
+
         ctx.beginPath();
         ctx.arc(ex1, ey1, 2, 0, Math.PI * 2);
         ctx.arc(ex2, ey2, 2, 0, Math.PI * 2);
@@ -477,20 +736,54 @@ button.pink { border-color: #ff38d180; }
   function start() {
     if (running && !paused) return;
 
-    if (over) reset();
+    if (levelComplete) {
+      if (currentLevel >= MAX_LEVEL) {
+        currentLevel = 1;
+        score = 0;
+      } else {
+        currentLevel++;
+      }
+
+      foodsInLevel = 0;
+      levelComplete = false;
+
+      snake = [
+        { x: 8, y: 10 },
+        { x: 7, y: 10 },
+        { x: 6, y: 10 }
+      ];
+
+      dir = { x: 1, y: 0 };
+      nextDir = { x: 1, y: 0 };
+
+      createObstacles();
+      placeFood();
+      updateScore();
+      draw();
+    } else if (over) {
+      reset();
+    }
+
     running = true;
     paused = false;
     over = false;
+    levelComplete = false;
+
     hideOverlay();
     playBtn.textContent = "▶ En juego";
     pauseBtn.textContent = "Ⅱ Pausar";
-    statusEl.textContent = wallMode ? "¡A jugar! Evita las paredes." : "¡A jugar! Puedes cruzar los bordes.";
+    overlayPlayBtn.textContent = "▶ Comenzar partida";
+
+    statusEl.textContent = wallMode
+      ? "¡A jugar! Evita las paredes y los obstáculos."
+      : "¡A jugar! Cruza los bordes y evita los obstáculos.";
+
     scheduleLoop();
     playTone(440, 0.06);
   }
 
   function togglePause() {
-    if (over) return;
+    if (over || levelComplete) return;
 
     if (!running) {
       start();
@@ -498,6 +791,7 @@ button.pink { border-color: #ff38d180; }
     }
 
     paused = !paused;
+
     if (paused) {
       stopTimer();
       pauseBtn.textContent = "▶ Continuar";
@@ -507,25 +801,29 @@ button.pink { border-color: #ff38d180; }
     } else {
       hideOverlay();
       pauseBtn.textContent = "Ⅱ Pausar";
-      statusEl.textContent = "¡Continúa jugando!";
       overlayPlayBtn.textContent = "▶ Comenzar partida";
+      statusEl.textContent = "¡Continúa jugando!";
       scheduleLoop();
     }
   }
 
   function restart() {
     reset();
-    showOverlay("¡Nueva partida!", "Elige un modo si quieres cambiarlo y pulsa Comenzar partida.");
-    overlayPlayBtn.textContent = "▶ Comenzar partida";
+    showOverlay(
+      "¡Nueva partida!",
+      "Volverás a empezar el nivel " + currentLevel +
+      ". Pulsa Comenzar partida."
+    );
   }
 
-  // Botones de modos: ambos lugares actualizan el mismo modo.
+  // Botones de modos.
   $("wallModeBtn").addEventListener("click", () => chooseWallMode(true));
   $("wallModeBtnMenu").addEventListener("click", () => chooseWallMode(true));
   $("noWallModeBtn").addEventListener("click", () => chooseWallMode(false));
   $("noWallModeBtnMenu").addEventListener("click", () => chooseWallMode(false));
 
   playBtn.addEventListener("click", start);
+
   overlayPlayBtn.addEventListener("click", () => {
     if (paused && running) {
       paused = false;
@@ -542,7 +840,7 @@ button.pink { border-color: #ff38d180; }
   pauseBtn.addEventListener("click", togglePause);
   restartBtn.addEventListener("click", restart);
 
-  // Teclado para probar en un computador.
+  // Controles de teclado.
   document.addEventListener("keydown", e => {
     const keys = {
       ArrowUp: [0, -1], w: [0, -1], W: [0, -1],
@@ -550,10 +848,12 @@ button.pink { border-color: #ff38d180; }
       ArrowLeft: [-1, 0], a: [-1, 0], A: [-1, 0],
       ArrowRight: [1, 0], d: [1, 0], D: [1, 0]
     };
+
     if (keys[e.key]) {
       e.preventDefault();
       setDirection(keys[e.key][0], keys[e.key][1]);
     }
+
     if (e.key === " " || e.key === "Escape") {
       e.preventDefault();
       togglePause();
@@ -567,6 +867,7 @@ button.pink { border-color: #ff38d180; }
 
   canvas.addEventListener("pointerup", e => {
     if (!touchStart) return;
+
     const dx = e.clientX - touchStart.x;
     const dy = e.clientY - touchStart.y;
     touchStart = null;
@@ -580,9 +881,7 @@ button.pink { border-color: #ff38d180; }
     }
   });
 
-  // Joystick táctil.
-  let joystickPointer = null;
-
+  // Joystick circular táctil.
   function moveJoystick(e) {
     const rect = joystick.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
@@ -593,8 +892,10 @@ button.pink { border-color: #ff38d180; }
     const distance = Math.hypot(dx, dy) || 1;
     const scale = Math.min(1, max / distance);
 
-    joyKnob.style.left = (rect.width / 2 - joyKnob.offsetWidth / 2 + dx * scale) + "px";
-    joyKnob.style.top = (rect.height / 2 - joyKnob.offsetHeight / 2 + dy * scale) + "px";
+    joyKnob.style.left =
+      (rect.width / 2 - joyKnob.offsetWidth / 2 + dx * scale) + "px";
+    joyKnob.style.top =
+      (rect.height / 2 - joyKnob.offsetHeight / 2 + dy * scale) + "px";
 
     if (Math.max(Math.abs(dx), Math.abs(dy)) > 12) {
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -606,8 +907,10 @@ button.pink { border-color: #ff38d180; }
   }
 
   function resetJoystick() {
-    joyKnob.style.left = (joystick.clientWidth / 2 - joyKnob.offsetWidth / 2) + "px";
-    joyKnob.style.top = (joystick.clientHeight / 2 - joyKnob.offsetHeight / 2) + "px";
+    joyKnob.style.left =
+      (joystick.clientWidth / 2 - joyKnob.offsetWidth / 2) + "px";
+    joyKnob.style.top =
+      (joystick.clientHeight / 2 - joyKnob.offsetHeight / 2) + "px";
     joystickPointer = null;
   }
 
@@ -628,13 +931,19 @@ button.pink { border-color: #ff38d180; }
   joystick.addEventListener("pointerup", e => {
     if (e.pointerId === joystickPointer) resetJoystick();
   });
+
   joystick.addEventListener("pointercancel", resetJoystick);
   window.addEventListener("resize", resetJoystick);
 
   updateModeButtons();
+  updateScore();
   resetJoystick();
   reset();
-  showOverlay("¿Listo para jugar?", "Elige un modo de juego y pulsa Comenzar partida.");
+
+  showOverlay(
+    "🐍 SnakePro Neon",
+    "Supera los 10 niveles. Come 5 alimentos por nivel y evita los obstáculos."
+  );
 })();
 </script>
 </body>
