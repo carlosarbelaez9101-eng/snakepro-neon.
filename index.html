@@ -46,6 +46,74 @@ h1 {
 }
 .stat span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; }
 .stat strong { display: block; color: var(--green); font-size: 24px; }
+
+/* Poderes en la parte superior */
+.power-shop {
+  margin: 0 0 12px;
+  padding: 11px;
+  border: 1px solid #283b61;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #111b32, #0b1121);
+  box-shadow: 0 0 15px #00f5ff12;
+}
+.power-shop h2 {
+  margin: 0 0 4px;
+  color: var(--cyan);
+  font-size: 17px;
+  text-shadow: 0 0 8px #00f5ff44;
+}
+.power-shop p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 4px 0 9px;
+}
+.power-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.power-buttons button {
+  min-width: 0;
+  min-height: 72px;
+  padding: 8px 3px;
+  margin: 0;
+  border-radius: 11px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.25;
+  background: #101a30;
+}
+.power-buttons button .power-icon {
+  font-size: 23px;
+  line-height: 1;
+}
+.power-buttons button .power-name {
+  font-weight: 800;
+  color: var(--text);
+}
+.power-buttons button .power-price {
+  font-size: 10px;
+  font-weight: 800;
+}
+#shieldBtn { border-color: #00f5ff99; }
+#shieldBtn .power-icon, #shieldBtn .power-price { color: var(--cyan); }
+#shieldBtn:active { background: #123342; }
+#fastBtn { border-color: #ff38d199; }
+#fastBtn .power-icon, #fastBtn .power-price { color: var(--pink); }
+#fastBtn:active { background: #351630; }
+#slowBtn { border-color: #39ff8899; }
+#slowBtn .power-icon, #slowBtn .power-price { color: var(--green); }
+#slowBtn:active { background: #123325; }
+#powerStatus {
+  color: var(--green);
+  min-height: 16px;
+  margin: 9px 0 0;
+  font-size: 11px;
+}
 .game-wrap {
   position: relative; width: 100%; overflow: hidden;
   border: 2px solid var(--cyan); border-radius: 16px;
@@ -112,33 +180,17 @@ button.pink { border-color: #ff38d180; }
   pointer-events: none;
 }
 .hint { color: var(--muted); font-size: 12px; margin-top: 12px; }
-
-/* Nueva sección de poderes: mantiene el estilo original */
-.power-shop {
-  margin: 18px 0 10px;
-  padding: 13px;
-  border: 1px solid #283b61;
-  border-radius: 14px;
-  background: #0d1426;
-}
-.power-shop h2 {
-  margin: 0 0 8px;
-  color: var(--cyan);
-  font-size: 19px;
-}
-.power-shop p { color: var(--muted); font-size: 12px; }
-.power-buttons {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 7px;
-}
-.power-buttons button { margin: 0; }
-#powerStatus { color: var(--green); min-height: 18px; }
 @media (max-width: 360px) {
   body { padding: 12px 8px 20px; }
   .actions button { font-size: 12px; }
   .joystick { width: 150px; height: 150px; }
   .knob { width: 54px; height: 54px; left: 46px; top: 46px; }
+  .stats { gap: 6px; }
+  .stat { padding: 9px 4px; }
+  .stat strong { font-size: 21px; }
+  .power-shop { padding: 8px; }
+  .power-buttons { gap: 5px; }
+  .power-buttons button { font-size: 10px; }
 }
 </style>
 </head>
@@ -153,6 +205,30 @@ button.pink { border-color: #ff38d180; }
     <div class="stat"><span>Récord</span><strong id="best">0</strong></div>
     <div class="stat"><span>Monedas 🪙</span><strong id="coins">0</strong></div>
   </div>
+
+  <!-- Poderes en la parte superior, antes del tablero -->
+  <section class="power-shop">
+    <h2>⚡ Poderes especiales</h2>
+    <p>Consigue 5 monedas cada vez que comas.</p>
+    <div class="power-buttons">
+      <button id="shieldBtn">
+        <span class="power-icon">🛡️</span>
+        <span class="power-name">Escudo</span>
+        <span class="power-price">30 🪙</span>
+      </button>
+      <button id="fastBtn">
+        <span class="power-icon">🐇</span>
+        <span class="power-name">Velocidad</span>
+        <span class="power-price">20 🪙</span>
+      </button>
+      <button id="slowBtn">
+        <span class="power-icon">🐢</span>
+        <span class="power-name">Lentitud</span>
+        <span class="power-price">20 🪙</span>
+      </button>
+    </div>
+    <p id="powerStatus">Sin poderes activos</p>
+  </section>
 
   <div class="game-wrap">
     <canvas id="game" width="400" height="400" aria-label="Tablero del juego SnakePro Neon"></canvas>
@@ -182,18 +258,6 @@ button.pink { border-color: #ff38d180; }
     <button id="pauseBtn">Ⅱ Pausar</button>
     <button id="restartBtn" class="pink">↻ Reiniciar</button>
   </div>
-
-  <!-- Nueva tienda de poderes -->
-  <section class="power-shop">
-    <h2>⚡ Poderes especiales</h2>
-    <p>Consigue 5 monedas cada vez que comas.</p>
-    <div class="power-buttons">
-      <button id="shieldBtn">🛡️ Escudo — 30 🪙</button>
-      <button id="fastBtn">🐇 Velocidad — 20 🪙</button>
-      <button id="slowBtn">🐢 Lentitud — 20 🪙</button>
-    </div>
-    <p id="powerStatus">Sin poderes activos</p>
-  </section>
 
   <div class="status" id="status">Elige un modo y pulsa Jugar.</div>
 
@@ -249,7 +313,6 @@ button.pink { border-color: #ff38d180; }
   let audioContext = null;
   let touchStart = null;
 
-  // Poderes
   let shield = false;
   let speedPowerUntil = 0;
   let slowPowerUntil = 0;
@@ -373,18 +436,21 @@ button.pink { border-color: #ff38d180; }
 
     powerTimer = setInterval(() => {
       const before = speed;
-      speed = currentDelay();
+      const newSpeed = currentDelay();
 
       updatePowerStatus();
 
-      if (running && !paused && speed !== before) {
+      if (running && !paused && newSpeed !== before) {
         scheduleLoop();
+      } else {
+        speed = newSpeed;
       }
 
       if (Date.now() >= speedPowerUntil &&
           Date.now() >= slowPowerUntil) {
         clearInterval(powerTimer);
         powerTimer = null;
+        updatePowerStatus();
       }
     }, 200);
   }
@@ -538,6 +604,8 @@ button.pink { border-color: #ff38d180; }
       ) {
         if (shield) {
           shield = false;
+          dir = {x:-dir.x,y:-dir.y};
+          nextDir = {...dir};
           statusEl.textContent = "🛡️ ¡El escudo bloqueó el choque!";
           updatePowerStatus();
           draw();
@@ -558,6 +626,8 @@ button.pink { border-color: #ff38d180; }
     if (bodyToCheck.some(p => p.x === head.x && p.y === head.y)) {
       if (shield) {
         shield = false;
+        dir = {x:-dir.x,y:-dir.y};
+        nextDir = {...dir};
         statusEl.textContent = "🛡️ ¡El escudo bloqueó el choque con tu cuerpo!";
         updatePowerStatus();
         draw();
@@ -631,7 +701,6 @@ button.pink { border-color: #ff38d180; }
       ctx.shadowBlur = 0;
     }
 
-    // Comida
     const fx = food.x*cellSize+cellSize/2;
     const fy = food.y*cellSize+cellSize/2;
 
@@ -644,7 +713,6 @@ button.pink { border-color: #ff38d180; }
     ctx.fill();
     ctx.restore();
 
-    // Serpiente
     snake.forEach((p,i) => {
       const pad = i===0 ? 2 : 3;
       const x = p.x*cellSize+pad;
@@ -684,7 +752,6 @@ button.pink { border-color: #ff38d180; }
       }
     });
 
-    // Indicador visual del escudo
     if (shield && snake.length) {
       ctx.save();
       ctx.strokeStyle = "#ffe66d";
@@ -799,7 +866,6 @@ button.pink { border-color: #ff38d180; }
     }
   });
 
-  // Deslizar el dedo sobre el tablero
   canvas.addEventListener("pointerdown",e => {
     touchStart={x:e.clientX,y:e.clientY};
   });
@@ -820,7 +886,6 @@ button.pink { border-color: #ff38d180; }
     }
   });
 
-  // Joystick táctil original
   let joystickPointer=null;
 
   function moveJoystick(e) {
