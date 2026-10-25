@@ -326,9 +326,12 @@ function makeRooms(){
   });
   for(let y=11;y<=18;y++)for(let x=11;x<=18;x++)clearCell(x,y);
 
-  // No generar paredes encima de la serpiente ni de la comida.
+  // Zona segura al iniciar cada nivel: mantener las paredes al menos
+  // a dos casillas de cualquier segmento de la serpiente.
   obstacles=obstacles.filter(o=>
-    !snake.some(part=>part.x===o.x&&part.y===o.y)&&
+    !snake.some(part=>
+      Math.abs(part.x-o.x)<=2 && Math.abs(part.y-o.y)<=2
+    ) &&
     !(o.x===food.x&&o.y===food.y)
   );
 }
