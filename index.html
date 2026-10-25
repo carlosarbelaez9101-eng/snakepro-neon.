@@ -130,7 +130,7 @@ const $=id=>document.getElementById(id);
 let mode="levels", difficulty="easy", walls=false, sound=true;
 let snake=[], direction={x:1,y:0}, nextDirection={x:1,y:0}, food={x:15,y:15};
 let obstacles=[], level=1, score=0, best=0, foodsThisLevel=0;
-let running=false, paused=false, gameOver=false, timer=null, lastTick=0, audioCtx=null;
+let running=false, paused=false, gameOver=false, timer=null, lastTick=0, audioCtx=null, musicTimer=null, musicStep=0;
 let roomLayout=[];
 // Efectos visuales adicionales: no modifican la jugabilidad.
 let particles=[];
@@ -150,7 +150,7 @@ function updateSoundButtons(){
   $("soundMenuBtn").textContent=sound?"🔊 Sonido activado":"🔇 Sonido desactivado";
   $("soundMenuBtn").classList.toggle("active",sound);
 }
-function toggleSound(){sound=!sound;updateSoundButtons();if(sound)beep(520,.06)}
+function toggleSound(){sound=!sound;updateSoundButtons();if(sound){beep(520,.06);if(running&&!paused)startRetroMusic()}else stopRetroMusic()}
 $("soundMenuBtn").addEventListener("click",toggleSound);
 $("soundBtn").addEventListener("click",toggleSound);
 updateSoundButtons();
@@ -166,6 +166,36 @@ function beep(freq=440,duration=.08){
     osc.connect(gain);gain.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+duration);
   }catch(e){}
 }
+// Música retro chiptune generada en el navegador: no necesita archivos externos.
+const retroMelody=[659.25,0,783.99,0,987.77,783.99,659.25,0,523.25,0,659.25,0,783.99,659.25,523.25,0,
+  587.33,0,698.46,0,880,698.46,587.33,0,493.88,0,587.33,0,698.46,587.33,493.88,0];
+const retroBass=[130.81,130.81,196,196,174.61,174.61,261.63,261.63,
+  110,110,164.81,164.81,146.83,146.83,220,220];
+function playMusicNote(freq,duration,volume,type="square"){
+  if(!sound||!freq)return;
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==="suspended")audioCtx.resume();
+    const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+    osc.type=type;osc.frequency.setValueAtTime(freq,audioCtx.currentTime);
+    gain.gain.setValueAtTime(volume,audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);
+    osc.connect(gain);gain.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+duration);
+  }catch(e){}
+}
+function startRetroMusic(){
+  if(!sound||musicTimer!==null)return;
+  try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}catch(e){}
+  musicTimer=setInterval(()=>{
+    if(!sound||!running||paused){stopRetroMusic();return}
+    const step=musicStep%retroMelody.length;
+    playMusicNote(retroMelody[step],.13,.018,"square");
+    if(step%2===0)playMusicNote(retroBass[(Math.floor(step/2))%retroBass.length],.22,.035,"triangle");
+    musicStep++;
+  },150);
+}
+function stopRetroMusic(){if(musicTimer!==null){clearInterval(musicTimer);musicTimer=null}}
+
 function rand(n){return Math.floor(Math.random()*n)}
 function key(x,y){return `${x},${y}`}
 function inside(x,y){return x>=0&&y>=0&&x<TOTAL&&y<TOTAL}
@@ -314,6 +344,7 @@ function resetGame(){
   makeRooms();
   placeFood();
   running=true;paused=false;gameOver=false;
+  startRetroMusic();
   $("score").textContent=score;$("best").textContent=best;$("level").textContent=level;
   $("pauseBtn").textContent="Ⅱ Pausar";
   hideOverlay();draw();startLoop();
@@ -321,7 +352,7 @@ function resetGame(){
 function startLoop(){clearInterval(timer);timer=setInterval(tick,speeds[difficulty])}
 function stopLoop(){clearInterval(timer);timer=null}
 function setGameOver(title,msg){
-  running=false;paused=false;gameOver=true;stopLoop();
+  running=false;paused=false;gameOver=true;stopLoop();stopRetroMusic();
   $("overlayTitle").textContent=title;$("overlayText").textContent=msg;
   $("overlayBtn").textContent="Jugar otra vez";$("overlay").classList.add("show");
   $("pauseBtn").textContent="Ⅱ Pausar";
@@ -504,9 +535,9 @@ function hideOverlay(){$("overlay").classList.remove("show")}
 function pauseGame(){
   if(gameOver)return;
   if(paused){
-    paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop();
+    paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startRetroMusic();startLoop();
   }else{
-    paused=true;running=false;stopLoop();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar";
+    paused=true;running=false;stopLoop();stopRetroMusic();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar";
   }
 }
 $("startBtn").addEventListener("click",()=>{
@@ -516,10 +547,10 @@ $("restartBtn").addEventListener("click",resetGame);
 $("pauseBtn").addEventListener("click",pauseGame);
 $("overlayBtn").addEventListener("click",()=>{
   if(gameOver){resetGame();return}
-  paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop();
+  paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startRetroMusic();startLoop();
 });
 function backToMenu(){
-  stopLoop();running=false;paused=false;gameOver=false;
+  stopLoop();stopRetroMusic();running=false;paused=false;gameOver=false;
   $("game").style.display="none";$("menu").style.display="block";hideOverlay();
 }
 $("menuBtn").addEventListener("click",backToMenu);
