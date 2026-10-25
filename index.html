@@ -1,751 +1,900 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#080b18">
-<meta name="description" content="SnakePro Neon: 10 niveles y modo infinito con o sin paredes.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#070b18">
+<meta name="description" content="SnakePro Neon: modo niveles y modo infinito con controles táctiles.">
 <title>SnakePro Neon</title>
+
 <style>
 :root {
-  --bg:#080b18; --cyan:#00f5ff; --pink:#ff38d1;
-  --green:#39ff88; --text:#f4f7ff; --muted:#9eaccb;
+  --bg: #070b18;
+  --panel: #10182b;
+  --cyan: #00f5ff;
+  --purple: #a855f7;
+  --green: #39ff88;
+  --text: #f2f7ff;
+  --muted: #9caecb;
+  --red: #ff416c;
 }
-* { box-sizing:border-box; }
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  margin:0; min-height:100vh; padding:18px 12px 28px;
-  background:radial-gradient(ellipse at top,#172449 0%,var(--bg) 65%);
-  color:var(--text); font-family:system-ui,Arial,sans-serif;
-  text-align:center; -webkit-tap-highlight-color:transparent;
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at top, #14234a 0%, transparent 55%),
+    var(--bg);
+  font-family: system-ui, -apple-system, sans-serif;
+  text-align: center;
+  overscroll-behavior: none;
 }
-.app { width:100%; max-width:470px; margin:auto; }
-h1 {
-  margin:5px 0 2px; font-size:clamp(28px,8vw,40px);
-  font-weight:900; letter-spacing:2px; color:var(--cyan);
-  text-shadow:0 0 8px var(--cyan),0 0 24px #0077ff;
-}
-.subtitle { color:var(--muted); font-size:13px; margin-bottom:18px; }
-.stats { display:flex; gap:8px; margin-bottom:12px; }
-.stat {
-  flex:1; min-width:0; padding:11px 5px;
-  border:1px solid #283b61; background:#0d1426; border-radius:14px;
-}
-.stat span { display:block; color:var(--muted); font-size:10px; text-transform:uppercase; }
-.stat strong { display:block; color:var(--green); font-size:23px; }
-.game-wrap {
-  position:relative; width:100%; overflow:hidden;
-  border:2px solid var(--cyan); border-radius:16px;
-  box-shadow:0 0 12px #00f5ff66,inset 0 0 20px #00f5ff12;
-  background:#070b16;
-}
-canvas { display:block; width:100%; height:auto; aspect-ratio:1; touch-action:none; }
-.overlay {
-  position:absolute; inset:0; z-index:2; display:flex;
-  align-items:center; justify-content:center; padding:12px;
-  background:#050816e8; backdrop-filter:blur(5px);
-}
-.overlay.hidden { display:none; }
-.overlay-card {
-  width:100%; max-height:100%; overflow:auto; padding:18px 12px;
-  border-radius:18px; border:1px solid #00f5ff80; background:#0d1425;
-  box-shadow:0 0 25px #00f5ff22;
-}
-.overlay h2 { color:var(--cyan); margin:0 0 8px; font-size:24px; }
-.overlay p { color:#c3cde3; font-size:13px; line-height:1.5; margin:0 0 12px; }
-.section-label { color:var(--muted); font-size:12px; margin:12px 0 8px; }
-.modes,.actions { display:flex; flex-wrap:wrap; gap:8px; }
-.modes button { flex:1; }
+
 button {
-  font:inherit; font-weight:750; cursor:pointer;
-  border:1px solid #31456b; border-radius:12px;
-  color:var(--text); background:#18233d;
-  padding:12px 8px; min-height:44px; transition:transform .1s;
+  font: inherit;
+  cursor: pointer;
+  color: var(--text);
+  touch-action: manipulation;
 }
-button:active { transform:scale(.97); }
-button.active {
-  color:#041018; background:var(--cyan); border-color:var(--cyan);
-  box-shadow:0 0 12px #00f5ff55;
+
+.app {
+  width: min(100%, 560px);
+  margin: auto;
+  padding: 18px 14px 30px;
 }
-button.primary { color:#041018; background:var(--green); border-color:var(--green); }
-button.pink { border-color:#ff38d180; }
-.overlay .primary { width:100%; margin-top:12px; }
-.actions { margin-top:12px; }
-.actions button { flex:1; font-size:13px; padding:11px 5px; }
-.status { min-height:20px; color:var(--muted); font-size:12px; margin:10px 0; }
-.joystick-area { margin:18px auto 0; width:190px; }
+
+.logo {
+  font-size: clamp(29px, 7vw, 43px);
+  line-height: 1.15;
+  font-weight: 1000;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-shadow: 0 0 10px #00f5ff, 0 0 30px #007bff66;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin: 8px 0 22px;
+  font-size: 13px;
+  letter-spacing: 3px;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+.panel {
+  padding: 20px;
+  border: 1px solid #2b3c61;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #111c33ee, #0b1122f5);
+  box-shadow: 0 0 30px #001b4566;
+}
+
+h2 {
+  margin: 4px 0 8px;
+  font-size: 25px;
+}
+
+.description {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 8px 0 20px;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.mode-card {
+  min-height: 185px;
+  padding: 18px 10px;
+  border: 1px solid #34476c;
+  border-radius: 18px;
+  background: #111c31;
+  transition: .2s;
+}
+
+.mode-card:active { transform: scale(.97); }
+
+.mode-card.levels {
+  border-color: #00d9ff77;
+  box-shadow: inset 0 0 25px #00d9ff0b;
+}
+
+.mode-card.infinite {
+  border-color: #b75cff88;
+  box-shadow: inset 0 0 25px #a855f70b;
+}
+
+.mode-card.selected {
+  outline: 2px solid var(--cyan);
+  background: #142943;
+}
+
+.mode-icon {
+  font-size: 39px;
+  margin-bottom: 12px;
+}
+
+.mode-card strong {
+  display: block;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.mode-card small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 12px;
+}
+
+.pill {
+  display: inline-block;
+  margin-top: 12px;
+  border-radius: 20px;
+  padding: 5px 9px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  background: #1d3150;
+  color: var(--cyan);
+}
+
+.primary, .secondary, .wall-option {
+  border-radius: 13px;
+  padding: 13px 16px;
+  font-weight: 800;
+  border: 1px solid #34476c;
+  background: #17233d;
+}
+
+.primary {
+  width: 100%;
+  margin-top: 16px;
+  border: 0;
+  color: #03101c;
+  background: linear-gradient(90deg, var(--cyan), #7b9cff);
+  box-shadow: 0 0 22px #00d9ff35;
+  font-size: 16px;
+}
+
+.secondary { width: 100%; margin-top: 10px; }
+
+.wall-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.wall-option {
+  min-height: 95px;
+}
+
+.wall-option.selected {
+  border-color: var(--cyan);
+  background: #12304a;
+  box-shadow: 0 0 16px #00d9ff24;
+}
+
+.wall-option .wall-icon {
+  display: block;
+  font-size: 25px;
+  margin-bottom: 6px;
+}
+
+.wall-option small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.stat {
+  background: #111c31;
+  border: 1px solid #293957;
+  border-radius: 12px;
+  padding: 10px 4px;
+}
+
+.stat span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.stat strong {
+  font-size: 20px;
+  color: var(--cyan);
+}
+
+.game-board {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border-radius: 15px;
+  border: 1px solid #00eaff88;
+  box-shadow: 0 0 24px #00eaff18;
+  background: #080e1b;
+  line-height: 0;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  touch-action: none;
+}
+
+.game-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.game-actions button {
+  padding: 11px 6px;
+  border-radius: 11px;
+  background: #16213a;
+  border: 1px solid #34476c;
+  font-weight: 700;
+}
+
 .joystick {
-  position:relative; width:170px; height:170px; margin:auto;
-  border-radius:50%; border:2px solid #00f5ff70;
-  background:radial-gradient(circle,#132847 0%,#0a1121 70%);
-  box-shadow:0 0 22px #00f5ff20; touch-action:none; user-select:none;
+  width: 180px;
+  margin: 17px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  grid-template-rows: repeat(2, 49px);
+  gap: 5px;
+  justify-content: center;
 }
-.joystick::before,.joystick::after { content:""; position:absolute; background:#00f5ff22; }
-.joystick::before { width:1px; height:100%; left:50%; top:0; }
-.joystick::after { height:1px; width:100%; top:50%; left:0; }
-.knob {
-  position:absolute; width:60px; height:60px; left:53px; top:53px;
-  border-radius:50%; background:var(--cyan); border:3px solid #c8ffff;
-  box-shadow:0 0 18px #00f5ff99; pointer-events:none;
+
+.joystick button {
+  border-radius: 13px;
+  background: #152442;
+  border: 1px solid #31527c;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--cyan);
+  touch-action: manipulation;
 }
-.hint { color:var(--muted); font-size:12px; margin-top:12px; }
-@media(max-width:360px) {
-  body { padding:12px 8px 20px; }
-  .actions button { font-size:12px; }
-  .joystick { width:150px; height:150px; }
-  .knob { width:54px; height:54px; left:46px; top:46px; }
+
+.joystick button:active { background: #205071; }
+.j-up { grid-column: 2; grid-row: 1; }
+.j-left { grid-column: 1; grid-row: 2; }
+.j-down { grid-column: 2; grid-row: 2; }
+.j-right { grid-column: 3; grid-row: 2; }
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 15px;
+  line-height: 1.6;
+}
+
+.game-board canvas { image-rendering: auto; }
+
+@media (max-width: 380px) {
+  .app { padding: 14px 10px 24px; }
+  .panel { padding: 14px; }
+  .mode-card { min-height: 170px; }
+  .mode-card strong { font-size: 15px; }
 }
 </style>
 </head>
+
 <body>
-<main class="app">
-  <h1>🐍 SnakePro Neon</h1>
-  <div class="subtitle">10 NIVELES · MODO INFINITO · DESAFÍO NEÓN</div>
+<div class="app">
+  <header>
+    <div class="logo">SNAKEPRO <span style="color:#a855f7">NEON</span></div>
+    <div class="subtitle">ARCADE EDITION</div>
+  </header>
 
-  <div class="stats">
-    <div class="stat"><span>Nivel</span><strong id="level">1/10</strong></div>
-    <div class="stat"><span>Puntuación</span><strong id="score">0</strong></div>
-    <div class="stat"><span>Récord</span><strong id="best">0</strong></div>
-  </div>
+  <!-- PANTALLA 1: SELECCIONAR MODO -->
+  <section id="modeScreen" class="screen active">
+    <div class="panel">
+      <h2>ELIGE TU MODO</h2>
+      <p class="description">
+        ¿Quieres superar desafíos o jugar sin límites?
+        Selecciona tu aventura.
+      </p>
 
-  <div class="game-wrap">
-    <canvas id="game" width="400" height="400" aria-label="Tablero de SnakePro Neon"></canvas>
-    <div class="overlay" id="overlay">
-      <div class="overlay-card">
-        <h2 id="overlayTitle">🐍 SnakePro Neon</h2>
-        <p id="overlayText">Elige un modo para comenzar.</p>
-        <div class="section-label">MODO DE JUEGO</div>
-        <div class="modes">
-          <button id="wallModeBtnMenu" class="active">🧱 Con paredes</button>
-          <button id="noWallModeBtnMenu">↔️ Sin paredes</button>
-          <button id="infiniteModeBtnMenu">♾️ Infinito</button>
-        </div>
-        <button id="overlayPlayBtn" class="primary">▶ Comenzar partida</button>
+      <div class="mode-grid">
+        <button class="mode-card levels" id="levelsCard">
+          <div class="mode-icon">🎯</div>
+          <strong>MODO NIVELES</strong>
+          <small>10 niveles de dificultad creciente. ¡Completa cada desafío!</small>
+          <span class="pill">10 NIVELES</span>
+        </button>
+
+        <button class="mode-card infinite" id="infiniteCard">
+          <div class="mode-icon">♾️</div>
+          <strong>MODO INFINITO</strong>
+          <small>Come, crece y supera tu récord. ¡No hay nivel final!</small>
+          <span class="pill" style="color:#d5a6ff">SIN LÍMITES</span>
+        </button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="section-label">ELIGE TU MODO</div>
-  <div class="modes">
-    <button id="wallModeBtn" class="active">🧱 Con paredes</button>
-    <button id="noWallModeBtn">↔️ Sin paredes</button>
-    <button id="infiniteModeBtn">♾️ Infinito</button>
-  </div>
+  <!-- PANTALLA 2: ELEGIR PAREDES -->
+  <section id="wallScreen" class="screen">
+    <div class="panel">
+      <h2 id="wallTitle">CONFIGURA TU PARTIDA</h2>
+      <p class="description" id="wallDescription">
+        Elige cómo quieres jugar.
+      </p>
 
-  <div class="actions">
-    <button id="playBtn" class="primary">▶ Jugar</button>
-    <button id="pauseBtn">Ⅱ Pausar</button>
-    <button id="restartBtn" class="pink">↻ Reiniciar</button>
-  </div>
-  <div class="status" id="status">Elige un modo y pulsa Jugar.</div>
+      <div class="wall-options">
+        <button class="wall-option selected" id="wallsOn">
+          <span class="wall-icon">🧱</span>
+          <strong>CON PAREDES</strong>
+          <small>Si chocas, pierdes.</small>
+        </button>
 
-  <div class="joystick-area">
-    <div class="joystick" id="joystick" aria-label="Joystick táctil">
-      <div class="knob" id="joyKnob"></div>
+        <button class="wall-option" id="wallsOff">
+          <span class="wall-icon">🌀</span>
+          <strong>SIN PAREDES</strong>
+          <small>Sales por un lado y vuelves por el otro.</small>
+        </button>
+      </div>
+
+      <button class="primary" id="startButton">▶ JUGAR</button>
+      <button class="secondary" id="backButton">← VOLVER A MODOS</button>
     </div>
-  </div>
-  <div class="hint">Usa el joystick o desliza el dedo sobre el tablero.</div>
-</main>
+  </section>
+
+  <!-- PANTALLA 3: JUEGO -->
+  <section id="gameScreen" class="screen">
+    <div class="stats">
+      <div class="stat">
+        <span>PUNTOS</span>
+        <strong id="score">0</strong>
+      </div>
+      <div class="stat">
+        <span id="levelLabel">NIVEL</span>
+        <strong id="level">1</strong>
+      </div>
+      <div class="stat">
+        <span>RÉCORD</span>
+        <strong id="best">0</strong>
+      </div>
+    </div>
+
+    <div class="game-board">
+      <canvas id="gameCanvas" width="480" height="480"></canvas>
+    </div>
+
+    <div class="game-actions">
+      <button id="pauseButton">⏸ PAUSAR</button>
+      <button id="restartButton">↻ REINICIAR</button>
+    </div>
+
+    <div class="joystick">
+      <button class="j-up" data-dir="up" aria-label="Arriba">▲</button>
+      <button class="j-left" data-dir="left" aria-label="Izquierda">◀</button>
+      <button class="j-down" data-dir="down" aria-label="Abajo">▼</button>
+      <button class="j-right" data-dir="right" aria-label="Derecha">▶</button>
+    </div>
+
+    <p class="hint">
+      Usa las flechas, el joystick o desliza el dedo sobre el tablero.<br>
+      Come los puntos brillantes para crecer y ganar puntos.
+    </p>
+    <button class="secondary" id="menuButton">⌂ MENÚ PRINCIPAL</button>
+  </section>
+</div>
 
 <script>
 (() => {
-"use strict";
+  "use strict";
 
-const $ = id => document.getElementById(id);
-const canvas = $("game");
-const ctx = canvas.getContext("2d");
-const scoreEl = $("score");
-const bestEl = $("best");
-const levelEl = $("level");
-const overlay = $("overlay");
-const overlayTitle = $("overlayTitle");
-const overlayText = $("overlayText");
-const statusEl = $("status");
-const playBtn = $("playBtn");
-const pauseBtn = $("pauseBtn");
-const restartBtn = $("restartBtn");
-const overlayPlayBtn = $("overlayPlayBtn");
-const joystick = $("joystick");
-const joyKnob = $("joyKnob");
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
 
-const cells = 20;
-const cellSize = canvas.width / cells;
-const FOODS_TO_COMPLETE = 5;
-const MAX_LEVEL = 10;
+  const COLS = 24;
+  const ROWS = 24;
+  const CELL = canvas.width / COLS;
+  const FOODS_PER_LEVEL = 5;
+  const MAX_LEVEL = 10;
 
-let snake = [];
-let food = {x:12,y:10};
-let dir = {x:1,y:0};
-let nextDir = {x:1,y:0};
-let score = 0;
-let regularBest = 0;
-let infiniteBest = 0;
-let best = 0;
-let currentLevel = 1;
-let unlockedLevel = 1;
-let foodsInLevel = 0;
-let obstacles = [];
-let wallMode = true;
-let infiniteMode = false;
-let running = false;
-let paused = false;
-let over = false;
-let levelComplete = false;
-let timer = null;
-let speed = 135;
-let audioContext = null;
-let touchStart = null;
-let joystickPointer = null;
+  const $ = id => document.getElementById(id);
 
-try {
-  regularBest = Number(localStorage.getItem("snakepro-neon-best")) || 0;
-  infiniteBest = Number(localStorage.getItem("snakepro-neon-infinite-best")) || 0;
-  unlockedLevel = Math.max(1,Math.min(MAX_LEVEL,
-    Number(localStorage.getItem("snakepro-neon-unlocked")) || 1));
-} catch (_) {}
-best = regularBest;
-
-function playTone(freq=440,duration=0.07) {
-  try {
-    audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-    if (audioContext.state === "suspended") audioContext.resume();
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    gain.gain.value = 0.05;
-    gain.gain.exponentialRampToValueAtTime(0.001,audioContext.currentTime+duration);
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
-    osc.start();
-    osc.stop(audioContext.currentTime+duration);
-  } catch (_) {}
-}
-
-function updateScore() {
-  scoreEl.textContent = score;
-  bestEl.textContent = best;
-  levelEl.textContent = infiniteMode ? "∞" : currentLevel+"/"+MAX_LEVEL;
-}
-
-function showOverlay(title,message) {
-  overlayTitle.textContent = title;
-  overlayText.textContent = message;
-  overlay.classList.remove("hidden");
-}
-function hideOverlay() { overlay.classList.add("hidden"); }
-
-function updateModeButtons() {
-  $("wallModeBtn").classList.toggle("active",!infiniteMode && wallMode);
-  $("wallModeBtnMenu").classList.toggle("active",!infiniteMode && wallMode);
-  $("noWallModeBtn").classList.toggle("active",!infiniteMode && !wallMode);
-  $("noWallModeBtnMenu").classList.toggle("active",!infiniteMode && !wallMode);
-  $("infiniteModeBtn").classList.toggle("active",infiniteMode);
-  $("infiniteModeBtnMenu").classList.toggle("active",infiniteMode);
-}
-
-function stopTimer() {
-  if (timer !== null) { clearInterval(timer); timer = null; }
-}
-function scheduleLoop() {
-  stopTimer();
-  if (running && !paused) timer = setInterval(tick,speed);
-}
-
-function createObstacles() {
-  obstacles = [];
-  if (infiniteMode) return;
-
-  const addH = (x1,x2,y) => {
-    for (let x=x1;x<=x2;x++) obstacles.push({x,y});
-  };
-  const addV = (x,y1,y2) => {
-    for (let y=y1;y<=y2;y++) obstacles.push({x,y});
+  const screens = {
+    mode: $("modeScreen"),
+    walls: $("wallScreen"),
+    game: $("gameScreen")
   };
 
-  switch (currentLevel) {
-    case 1: addH(2,5,4); addH(14,17,15); break;
-    case 2: addV(4,3,7); addV(15,12,16); addH(8,11,4); break;
-    case 3: addV(3,3,8); addV(16,11,16); addH(8,12,5); addH(7,11,14); break;
-    case 4: addH(2,7,4); addH(12,17,7); addH(2,7,13); addH(12,17,16); break;
-    case 5:
-      addV(5,3,7); addV(14,12,16); addH(8,11,4); addH(8,11,15);
-      addV(10,6,8); addV(10,12,13); break;
-    case 6:
-      addH(2,8,3); addH(11,17,6); addH(2,8,9);
-      addH(11,17,12); addH(2,8,16); break;
-    case 7:
-      addV(3,3,6); addV(6,12,16); addV(10,3,7);
-      addV(13,12,16); addV(17,4,8); addH(8,11,14); break;
-    case 8:
-      addH(3,15,3); addV(15,3,8); addH(6,15,8);
-      addV(6,8,13); addH(6,12,13); addV(12,10,13); break;
-    case 9:
-      addH(2,7,3); addH(12,17,3); addH(2,5,7); addH(14,17,7);
-      addV(4,10,16); addV(15,10,16); addH(7,12,16);
-      addV(9,5,7); addV(11,11,14); break;
-    case 10:
-      addH(2,7,3); addH(12,17,3); addV(3,4,8); addV(16,4,8);
-      addH(6,13,7); addV(6,11,15); addV(13,10,15);
-      addH(8,11,11); addH(8,11,16); break;
-  }
-}
+  let selectedMode = "levels";
+  let wallMode = true;
+  let snake = [];
+  let food = {x: 12, y: 8};
+  let obstacles = [];
+  let direction = {x: 1, y: 0};
+  let nextDirection = {x: 1, y: 0};
+  let score = 0;
+  let level = 1;
+  let foodsThisLevel = 0;
+  let best = 0;
+  let running = false;
+  let paused = false;
+  let gameOver = false;
+  let lastTime = 0;
+  let accumulator = 0;
+  let stepMs = 150;
+  let animationId = 0;
+  let touchStart = null;
 
-function placeFood() {
-  const free = [];
-  for (let y=0;y<cells;y++) {
-    for (let x=0;x<cells;x++) {
-      const onSnake = snake.some(p=>p.x===x && p.y===y);
-      const onObstacle = obstacles.some(p=>p.x===x && p.y===y);
-      if (!onSnake && !onObstacle) free.push({x,y});
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove("active"));
+    screens[name].classList.add("active");
+  }
+
+  function getBestKey() {
+    return selectedMode === "infinite"
+      ? "snakepro-neon-infinite-best"
+      : "snakepro-neon-levels-best";
+  }
+
+  function readBest() {
+    try {
+      best = Number(localStorage.getItem(getBestKey())) || 0;
+    } catch (_) {
+      best = 0;
+    }
+    updateStats();
+  }
+
+  function saveBest() {
+    if (score > best) {
+      best = score;
+      try {
+        localStorage.setItem(getBestKey(), String(best));
+      } catch (_) {}
+    }
+    updateStats();
+  }
+
+  function updateStats() {
+    $("score").textContent = score;
+    $("best").textContent = best;
+    $("levelLabel").textContent =
+      selectedMode === "infinite" ? "MODO" : "NIVEL";
+    $("level").textContent =
+      selectedMode === "infinite" ? "∞" : level;
+  }
+
+  function chooseMode(mode) {
+    selectedMode = mode;
+    $("levelsCard").classList.toggle("selected", mode === "levels");
+    $("infiniteCard").classList.toggle("selected", mode === "infinite");
+
+    $("wallTitle").textContent =
+      mode === "infinite" ? "MODO INFINITO" : "MODO NIVELES";
+
+    $("wallDescription").textContent =
+      mode === "infinite"
+        ? "Juega todo el tiempo que puedas. Cada 5 comidas, ¡más velocidad!"
+        : "Supera los 10 niveles. Necesitas 5 comidas para avanzar de nivel.";
+
+    showScreen("walls");
+  }
+
+  function chooseWalls(withWalls) {
+    wallMode = withWalls;
+    $("wallsOn").classList.toggle("selected", withWalls);
+    $("wallsOff").classList.toggle("selected", !withWalls);
+  }
+
+  function randomFreeCell() {
+    const free = [];
+
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const onSnake = snake.some(s => s.x === x && s.y === y);
+        const onObstacle = obstacles.some(o => o.x === x && o.y === y);
+
+        if (!onSnake && !onObstacle) free.push({x, y});
+      }
+    }
+
+    if (!free.length) return null;
+    return free[Math.floor(Math.random() * free.length)];
+  }
+
+  function createObstacles() {
+    obstacles = [];
+
+    // El modo infinito siempre es libre de obstáculos.
+    if (selectedMode === "infinite" || level < 3) return;
+
+    const amount = Math.min((level - 2) * 3, 24);
+
+    for (let i = 0; i < amount; i++) {
+      const cell = randomFreeCell();
+      if (cell) obstacles.push(cell);
     }
   }
-  if (!free.length) {
-    if (infiniteMode) gameOver("¡Tablero lleno! ¡Increíble partida!");
-    else completeLevel();
-    return;
+
+  function spawnFood() {
+    const cell = randomFreeCell();
+    if (cell) {
+      food = cell;
+    } else {
+      finishGame(true, "¡Tablero completado!");
+    }
   }
-  food = free[Math.floor(Math.random()*free.length)];
-}
 
-function reset() {
-  stopTimer();
-  snake = [{x:8,y:10},{x:7,y:10},{x:6,y:10}];
-  dir = {x:1,y:0};
-  nextDir = {x:1,y:0};
-  score = 0;
-  foodsInLevel = 0;
-  speed = 135;
-  running = false;
-  paused = false;
-  over = false;
-  levelComplete = false;
-  best = infiniteMode ? infiniteBest : regularBest;
-  createObstacles();
-  placeFood();
-  updateScore();
-  playBtn.textContent = "▶ Jugar";
-  pauseBtn.textContent = "Ⅱ Pausar";
-  overlayPlayBtn.textContent = "▶ Comenzar partida";
-  statusEl.textContent = infiniteMode
-    ? (wallMode ? "Infinito con paredes listo." : "Infinito sin paredes listo.")
-    : "Nivel "+currentLevel+": evita las paredes y los obstáculos.";
-  draw();
-}
+  function startGame() {
+    cancelAnimationFrame(animationId);
 
-/* Cambia las paredes sin desactivar el modo infinito. */
-function chooseWallMode(withWalls) {
-  if (running && !over && !levelComplete) return;
+    score = 0;
+    level = 1;
+    foodsThisLevel = 0;
+    stepMs = 150;
+    direction = {x: 1, y: 0};
+    nextDirection = {x: 1, y: 0};
+    paused = false;
+    gameOver = false;
+    running = true;
+    lastTime = 0;
+    accumulator = 0;
 
-  wallMode = withWalls;
-  best = infiniteMode ? infiniteBest : regularBest;
-  updateModeButtons();
-  reset();
+    snake = [
+      {x: 10, y: 12},
+      {x: 9, y: 12},
+      {x: 8, y: 12}
+    ];
 
-  showOverlay(
-    infiniteMode
-      ? (withWalls ? "♾️ Infinito con paredes" : "♾️ Infinito sin paredes")
-      : (withWalls ? "🧱 Modo con paredes" : "↔️ Modo sin paredes"),
-    infiniteMode
-      ? "Come toda la comida que puedas. "+
-        (withWalls ? "¡Cuidado con los bordes! " : "Puedes atravesar los bordes. ")+
-        "La velocidad aumenta cada 5 alimentos."
-      : "Completa los 10 niveles comiendo 5 alimentos por nivel."
-  );
-}
+    obstacles = [];
+    createObstacles();
+    spawnFood();
+    readBest();
 
-/* Activa infinito conservando la elección de paredes actual. */
-function chooseInfiniteMode() {
-  if (running && !over && !levelComplete) return;
-
-  infiniteMode = true;
-  best = infiniteBest;
-  currentLevel = 1;
-  updateModeButtons();
-  reset();
-
-  showOverlay(
-    "♾️ MODO INFINITO",
-    "Come toda la comida que puedas. "+
-    (wallMode ? "¡No choques contra las paredes! " : "Puedes atravesar los bordes. ")+
-    "Cada 5 alimentos aumentarás de velocidad."
-  );
-  statusEl.textContent = wallMode
-    ? "Infinito con paredes preparado."
-    : "Infinito sin paredes preparado.";
-}
-
-function setDirection(x,y) {
-  if (x===-dir.x && y===-dir.y) return;
-  nextDir = {x,y};
-}
-
-function gameOver(message="¡Fin del juego!") {
-  running = false;
-  paused = false;
-  over = true;
-  levelComplete = false;
-  stopTimer();
-  playTone(160,0.2);
-  playBtn.textContent = "▶ Jugar otra vez";
-  pauseBtn.textContent = "Ⅱ Pausar";
-  statusEl.textContent = message;
-  showOverlay(message,
-    "Puntuación: "+score+". "+
-    (infiniteMode ? "Récord infinito: "+infiniteBest+". " : "Nivel: "+currentLevel+". ")+
-    "Pulsa reintentar para jugar de nuevo.");
-  overlayPlayBtn.textContent = "▶ Reintentar";
-}
-
-function completeLevel() {
-  if (levelComplete) return;
-  stopTimer();
-  running = false;
-  paused = false;
-  over = false;
-  levelComplete = true;
-  playTone(880,0.18);
-
-  if (currentLevel<MAX_LEVEL) {
-    unlockedLevel = Math.max(unlockedLevel,currentLevel+1);
-    try { localStorage.setItem("snakepro-neon-unlocked",String(unlockedLevel)); } catch (_) {}
-    showOverlay("¡Nivel "+currentLevel+" completado!",
-      "¡Excelente! El nivel "+(currentLevel+1)+" está desbloqueado.");
-    overlayPlayBtn.textContent = "▶ Siguiente nivel";
-    statusEl.textContent = "¡Nivel completado!";
-  } else {
-    showOverlay("🏆 ¡Victoria!","¡Has superado los 10 niveles!");
-    overlayPlayBtn.textContent = "↻ Volver al nivel 1";
-    statusEl.textContent = "¡Has conquistado todos los niveles!";
+    $("pauseButton").textContent = "⏸ PAUSAR";
+    showScreen("game");
+    draw();
+    animationId = requestAnimationFrame(loop);
   }
-}
 
-function tick() {
-  if (!running || paused || over || levelComplete) return;
-  dir = {...nextDir};
-  const head = {x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+  function setDirection(name) {
+    if (!running || paused || gameOver) return;
 
-  if (wallMode) {
-    if (head.x<0 || head.x>=cells || head.y<0 || head.y>=cells) {
-      gameOver("¡Chocaste contra una pared!");
+    const dirs = {
+      up: {x: 0, y: -1},
+      down: {x: 0, y: 1},
+      left: {x: -1, y: 0},
+      right: {x: 1, y: 0}
+    };
+
+    const d = dirs[name];
+    if (!d) return;
+
+    // Impide girar directamente hacia la cola.
+    if (d.x === -direction.x && d.y === -direction.y) return;
+
+    nextDirection = d;
+  }
+
+  function update() {
+    direction = nextDirection;
+
+    const head = {
+      x: snake[0].x + direction.x,
+      y: snake[0].y + direction.y
+    };
+
+    if (wallMode) {
+      if (head.x < 0 || head.x >= COLS ||
+          head.y < 0 || head.y >= ROWS) {
+        finishGame(false, "¡Chocaste contra una pared!");
+        return;
+      }
+    } else {
+      head.x = (head.x + COLS) % COLS;
+      head.y = (head.y + ROWS) % ROWS;
+    }
+
+    const eating = head.x === food.x && head.y === food.y;
+
+    // Si no come, la cola se mueve y su casilla puede ocuparse.
+    const bodyToCheck = eating ? snake : snake.slice(0, -1);
+
+    if (bodyToCheck.some(s => s.x === head.x && s.y === head.y)) {
+      finishGame(false, "¡Te mordiste la cola!");
       return;
     }
-  } else {
-    head.x = (head.x+cells)%cells;
-    head.y = (head.y+cells)%cells;
-  }
 
-  if (obstacles.some(p=>p.x===head.x && p.y===head.y)) {
-    gameOver("¡Chocaste contra un obstáculo!");
-    return;
-  }
-
-  const eating = head.x===food.x && head.y===food.y;
-  const body = eating ? snake : snake.slice(0,-1);
-  if (body.some(p=>p.x===head.x && p.y===head.y)) {
-    gameOver("¡Chocaste contra tu cuerpo!");
-    return;
-  }
-
-  snake.unshift(head);
-
-  if (eating) {
-    score += 10;
-    foodsInLevel++;
-
-    if (infiniteMode) {
-      if (score>infiniteBest) {
-        infiniteBest = score;
-        best = infiniteBest;
-        try {
-          localStorage.setItem("snakepro-neon-infinite-best",String(infiniteBest));
-        } catch (_) {}
-      }
-      const newSpeed = Math.max(55,135-Math.floor(foodsInLevel/5)*10);
-      if (newSpeed!==speed) {
-        speed = newSpeed;
-        scheduleLoop();
-        playTone(780,0.09);
-      }
-      statusEl.textContent = "♾️ Infinito "+
-        (wallMode ? "con paredes" : "sin paredes")+
-        " · Alimentos: "+foodsInLevel+
-        " · Velocidad: "+(Math.round(135/speed*100)/100)+"x";
-    } else if (score>regularBest) {
-      regularBest = score;
-      best = regularBest;
-      try { localStorage.setItem("snakepro-neon-best",String(regularBest)); } catch (_) {}
-    }
-
-    updateScore();
-    playTone(620,0.06);
-
-    if (!infiniteMode && foodsInLevel>=FOODS_TO_COMPLETE) {
-      draw();
-      completeLevel();
+    if (obstacles.some(o => o.x === head.x && o.y === head.y)) {
+      finishGame(false, "¡Chocaste contra un obstáculo!");
       return;
     }
-    placeFood();
-  } else {
-    snake.pop();
-  }
-  draw();
-}
 
-function roundedRect(x,y,w,h,r) {
-  const radius = Math.min(r,w/2,h/2);
-  ctx.beginPath();
-  ctx.moveTo(x+radius,y);
-  ctx.arcTo(x+w,y,x+w,y+h,radius);
-  ctx.arcTo(x+w,y+h,x,y+h,radius);
-  ctx.arcTo(x,y+h,x,y,radius);
-  ctx.arcTo(x,y,x+w,y,radius);
-  ctx.closePath();
-}
+    snake.unshift(head);
 
-function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#070b16";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+    if (eating) {
+      score += 10;
+      foodsThisLevel++;
+      saveBest();
 
-  ctx.strokeStyle="#172642";
-  ctx.lineWidth=1;
-  for (let i=0;i<=cells;i++) {
-    const p=i*cellSize;
-    ctx.beginPath(); ctx.moveTo(p,0); ctx.lineTo(p,canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0,p); ctx.lineTo(canvas.width,p); ctx.stroke();
-  }
+      // Cada 5 comidas aumenta la velocidad.
+      stepMs = Math.max(55, 150 - Math.floor(score / 50) * 8);
 
-  if (wallMode) {
-    ctx.strokeStyle="#ff38d1";
-    ctx.lineWidth=3;
-    ctx.shadowColor="#ff38d1";
-    ctx.shadowBlur=12;
-    ctx.strokeRect(2,2,canvas.width-4,canvas.height-4);
-    ctx.shadowBlur=0;
+      if (selectedMode === "levels" &&
+          foodsThisLevel >= FOODS_PER_LEVEL) {
+        if (level >= MAX_LEVEL) {
+          finishGame(true, "¡CAMPEÓN! Completaste los 10 niveles.");
+          return;
+        }
+
+        level++;
+        foodsThisLevel = 0;
+        createObstacles();
+      }
+
+      updateStats();
+      spawnFood();
+    } else {
+      snake.pop();
+    }
   }
 
-  ctx.save();
-  ctx.shadowColor="#ff38d1";
-  ctx.shadowBlur=10;
-  obstacles.forEach(p=>{
-    const pad=2,x=p.x*cellSize+pad,y=p.y*cellSize+pad,size=cellSize-pad*2;
-    ctx.fillStyle="#a21caf";
-    roundedRect(x,y,size,size,4);
-    ctx.fill();
-    ctx.strokeStyle="#ff38d1";
-    ctx.lineWidth=1;
-    ctx.stroke();
-  });
-  ctx.restore();
+  function roundedRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+  }
 
-  ctx.save();
-  ctx.shadowColor="#ff38d1";
-  ctx.shadowBlur=18;
-  ctx.fillStyle="#ff38d1";
-  ctx.beginPath();
-  ctx.arc(food.x*cellSize+cellSize/2,food.y*cellSize+cellSize/2,cellSize*0.34,0,Math.PI*2);
-  ctx.fill();
-  ctx.restore();
+  function draw() {
+    ctx.fillStyle = "#080e1b";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  snake.forEach((p,i)=>{
-    const pad=i===0?2:3;
-    const x=p.x*cellSize+pad,y=p.y*cellSize+pad,size=cellSize-pad*2;
+    // Cuadrícula del tablero.
+    ctx.strokeStyle = "#162440";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x <= COLS; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * CELL, 0);
+      ctx.lineTo(x * CELL, canvas.height);
+      ctx.stroke();
+    }
+
+    for (let y = 0; y <= ROWS; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * CELL);
+      ctx.lineTo(canvas.width, y * CELL);
+      ctx.stroke();
+    }
+
+    // Obstáculos de los niveles.
+    obstacles.forEach(o => {
+      const x = o.x * CELL + 2;
+      const y = o.y * CELL + 2;
+
+      ctx.shadowColor = "#ff416c";
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = "#ff416c";
+      roundedRect(x, y, CELL - 4, CELL - 4, 4);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    // Comida brillante.
+    const fx = food.x * CELL + CELL / 2;
+    const fy = food.y * CELL + CELL / 2;
+
     ctx.save();
-    ctx.shadowColor=i===0?"#00f5ff":"#39ff88";
-    ctx.shadowBlur=i===0?18:9;
-    ctx.fillStyle=i===0?"#00f5ff":"#39ff88";
-    roundedRect(x,y,size,size,5);
+    ctx.shadowColor = "#ff416c";
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = "#ff416c";
+    ctx.beginPath();
+    ctx.arc(fx, fy, CELL * .33, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    if (i===0) {
-      ctx.fillStyle="#07111c";
-      let ex1=x+size*0.32,ey1=y+size*0.32;
-      let ex2=x+size*0.68,ey2=y+size*0.32;
-      if (dir.x!==0) {
-        ex1=x+size*0.55; ex2=x+size*0.55;
-        ey1=y+size*0.3; ey2=y+size*0.7;
-      } else if (dir.y<0) {
-        ey1=y+size*0.35; ey2=ey1;
-      } else {
-        ey1=y+size*0.65; ey2=ey1;
-      }
-      ctx.beginPath();
-      ctx.arc(ex1,ey1,2,0,Math.PI*2);
-      ctx.arc(ex2,ey2,2,0,Math.PI*2);
+    // Serpiente neón.
+    snake.forEach((s, i) => {
+      const x = s.x * CELL + 2;
+      const y = s.y * CELL + 2;
+      const size = CELL - 4;
+
+      ctx.save();
+      ctx.shadowColor = i === 0 ? "#00f5ff" : "#39ff88";
+      ctx.shadowBlur = i === 0 ? 15 : 7;
+      ctx.fillStyle = i === 0 ? "#00f5ff" : "#39ff88";
+      roundedRect(x, y, size, size, 5);
       ctx.fill();
+      ctx.restore();
+
+      if (i === 0) {
+        ctx.fillStyle = "#06202b";
+
+        if (direction.x !== 0) {
+          ctx.beginPath();
+          ctx.arc(x + size / 2, y + size * .30, 2, 0, Math.PI * 2);
+          ctx.arc(x + size / 2, y + size * .70, 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(x + size * .30, y + size / 2, 2, 0, Math.PI * 2);
+          ctx.arc(x + size * .70, y + size / 2, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    });
+
+    if (paused || gameOver) {
+      ctx.fillStyle = "#030714cc";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#00f5ff";
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = gameOver ? "#ff6686" : "#00f5ff";
+      ctx.font = "bold 34px system-ui";
+      ctx.fillText(gameOver ? "FIN DEL JUEGO" : "PAUSA",
+                   canvas.width / 2, canvas.height / 2 - 12);
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "16px system-ui";
+      ctx.fillText(
+        gameOver ? "Pulsa REINICIAR para volver a jugar" : "Pulsa CONTINUAR",
+        canvas.width / 2, canvas.height / 2 + 24
+      );
+    }
+  }
+
+  function loop(timestamp) {
+    if (!running) return;
+
+    if (!lastTime) lastTime = timestamp;
+    const delta = Math.min(timestamp - lastTime, 100);
+    lastTime = timestamp;
+
+    if (!paused && !gameOver) {
+      accumulator += delta;
+
+      while (accumulator >= stepMs) {
+        update();
+        accumulator -= stepMs;
+
+        if (gameOver) break;
+      }
+    }
+
+    draw();
+
+    if (running) {
+      animationId = requestAnimationFrame(loop);
+    }
+  }
+
+  function finishGame(won, message) {
+    gameOver = true;
+    running = false;
+    saveBest();
+    draw();
+
+    // El mensaje aparece después de mostrar el tablero final.
+    setTimeout(() => {
+      if (screens.game.classList.contains("active")) {
+        if (won) {
+          alert(message + "\nPuntuación: " + score);
+        } else {
+          alert(message + "\nPuntuación: " + score);
+        }
+      }
+    }, 100);
+  }
+
+  function togglePause() {
+    if (gameOver || !running) return;
+
+    paused = !paused;
+    $("pauseButton").textContent =
+      paused ? "▶ CONTINUAR" : "⏸ PAUSAR";
+
+    lastTime = 0;
+    draw();
+  }
+
+  function returnToMenu() {
+    running = false;
+    paused = false;
+    gameOver = false;
+    cancelAnimationFrame(animationId);
+    showScreen("mode");
+  }
+
+  $("levelsCard").addEventListener("click", () => chooseMode("levels"));
+  $("infiniteCard").addEventListener("click", () => chooseMode("infinite"));
+
+  $("wallsOn").addEventListener("click", () => chooseWalls(true));
+  $("wallsOff").addEventListener("click", () => chooseWalls(false));
+
+  $("startButton").addEventListener("click", startGame);
+  $("backButton").addEventListener("click", () => showScreen("mode"));
+  $("pauseButton").addEventListener("click", togglePause);
+  $("restartButton").addEventListener("click", startGame);
+  $("menuButton").addEventListener("click", returnToMenu);
+
+  document.querySelectorAll("[data-dir]").forEach(button => {
+    button.addEventListener("pointerdown", event => {
+      event.preventDefault();
+      setDirection(button.dataset.dir);
+    });
+  });
+
+  document.addEventListener("keydown", event => {
+    const keys = {
+      ArrowUp: "up",
+      w: "up", W: "up",
+      ArrowDown: "down",
+      s: "down", S: "down",
+      ArrowLeft: "left",
+      a: "left", A: "left",
+      ArrowRight: "right",
+      d: "right", D: "right"
+    };
+
+    if (keys[event.key]) {
+      event.preventDefault();
+      setDirection(keys[event.key]);
+    }
+
+    if (event.code === "Space") {
+      event.preventDefault();
+      togglePause();
     }
   });
 
-  if (infiniteMode) {
-    ctx.fillStyle="#00f5ff";
-    ctx.font="bold 12px system-ui";
-    ctx.fillText(wallMode ? "♾️ INFINITO · PAREDES" : "♾️ INFINITO · SIN PAREDES",10,18);
-  }
-}
+  canvas.addEventListener("pointerdown", event => {
+    touchStart = {x: event.clientX, y: event.clientY};
+  });
 
-function start() {
-  if (running && !paused) return;
+  canvas.addEventListener("pointerup", event => {
+    if (!touchStart) return;
 
-  if (levelComplete) {
-    if (currentLevel>=MAX_LEVEL) {
-      currentLevel=1;
-      score=0;
+    const dx = event.clientX - touchStart.x;
+    const dy = event.clientY - touchStart.y;
+    touchStart = null;
+
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 15) return;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      setDirection(dx > 0 ? "right" : "left");
     } else {
-      currentLevel++;
+      setDirection(dy > 0 ? "down" : "up");
     }
-    foodsInLevel=0;
-    levelComplete=false;
-    snake=[{x:8,y:10},{x:7,y:10},{x:6,y:10}];
-    dir={x:1,y:0};
-    nextDir={x:1,y:0};
-    speed=135;
-    createObstacles();
-    placeFood();
-    updateScore();
-    draw();
-  } else if (over) {
-    reset();
-  }
+  });
 
-  running=true;
-  paused=false;
-  over=false;
-  levelComplete=false;
-  hideOverlay();
-  playBtn.textContent="▶ En juego";
-  pauseBtn.textContent="Ⅱ Pausar";
-  overlayPlayBtn.textContent="▶ Comenzar partida";
-  statusEl.textContent=infiniteMode
-    ? "♾️ ¡Sobrevive y consigue el récord!"
-    : "¡A jugar! Evita las paredes y los obstáculos.";
-  scheduleLoop();
-  playTone(440,0.06);
-}
-
-function togglePause() {
-  if (over || levelComplete) return;
-  if (!running) { start(); return; }
-  paused=!paused;
-  if (paused) {
-    stopTimer();
-    pauseBtn.textContent="▶ Continuar";
-    statusEl.textContent="Partida pausada.";
-    showOverlay("⏸ Partida pausada","Pulsa Continuar para seguir jugando.");
-    overlayPlayBtn.textContent="▶ Continuar";
-  } else {
-    hideOverlay();
-    pauseBtn.textContent="Ⅱ Pausar";
-    overlayPlayBtn.textContent="▶ Comenzar partida";
-    statusEl.textContent="¡Continúa jugando!";
-    scheduleLoop();
-  }
-}
-
-function restart() {
-  reset();
-  showOverlay("¡Nueva partida!",
-    infiniteMode
-      ? "Modo infinito: "+(wallMode?"con paredes.":"sin paredes.")+" ¡Supera tu récord!"
-      : "Volverás a empezar el nivel "+currentLevel+".");
-}
-
-$("wallModeBtn").addEventListener("click",()=>chooseWallMode(true));
-$("wallModeBtnMenu").addEventListener("click",()=>chooseWallMode(true));
-$("noWallModeBtn").addEventListener("click",()=>chooseWallMode(false));
-$("noWallModeBtnMenu").addEventListener("click",()=>chooseWallMode(false));
-$("infiniteModeBtn").addEventListener("click",chooseInfiniteMode);
-$("infiniteModeBtnMenu").addEventListener("click",chooseInfiniteMode);
-playBtn.addEventListener("click",start);
-pauseBtn.addEventListener("click",togglePause);
-restartBtn.addEventListener("click",restart);
-
-overlayPlayBtn.addEventListener("click",()=>{
-  if (paused && running) {
-    paused=false;
-    hideOverlay();
-    pauseBtn.textContent="Ⅱ Pausar";
-    overlayPlayBtn.textContent="▶ Comenzar partida";
-    statusEl.textContent="¡Continúa jugando!";
-    scheduleLoop();
-  } else {
-    start();
-  }
-});
-
-document.addEventListener("keydown",e=>{
-  const keys={
-    ArrowUp:[0,-1],w:[0,-1],W:[0,-1],
-    ArrowDown:[0,1],s:[0,1],S:[0,1],
-    ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],
-    ArrowRight:[1,0],d:[1,0],D:[1,0]
-  };
-  if (keys[e.key]) {
-    e.preventDefault();
-    setDirection(keys[e.key][0],keys[e.key][1]);
-  }
-  if (e.key===" " || e.key==="Escape") {
-    e.preventDefault();
-    togglePause();
-  }
-});
-
-canvas.addEventListener("pointerdown",e=>{
-  touchStart={x:e.clientX,y:e.clientY};
-});
-canvas.addEventListener("pointerup",e=>{
-  if (!touchStart) return;
-  const dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;
-  touchStart=null;
-  if (Math.max(Math.abs(dx),Math.abs(dy))<12) return;
-  if (Math.abs(dx)>Math.abs(dy)) setDirection(dx>0?1:-1,0);
-  else setDirection(0,dy>0?1:-1);
-});
-
-function moveJoystick(e) {
-  const rect=joystick.getBoundingClientRect();
-  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
-  const dx=e.clientX-cx,dy=e.clientY-cy;
-  const max=rect.width*0.28;
-  const distance=Math.hypot(dx,dy)||1;
-  const scale=Math.min(1,max/distance);
-  joyKnob.style.left=(rect.width/2-joyKnob.offsetWidth/2+dx*scale)+"px";
-  joyKnob.style.top=(rect.height/2-joyKnob.offsetHeight/2+dy*scale)+"px";
-  if (Math.max(Math.abs(dx),Math.abs(dy))>12) {
-    if (Math.abs(dx)>Math.abs(dy)) setDirection(dx>0?1:-1,0);
-    else setDirection(0,dy>0?1:-1);
-  }
-}
-function resetJoystick() {
-  joyKnob.style.left=(joystick.clientWidth/2-joyKnob.offsetWidth/2)+"px";
-  joyKnob.style.top=(joystick.clientHeight/2-joyKnob.offsetHeight/2)+"px";
-  joystickPointer=null;
-}
-joystick.addEventListener("pointerdown",e=>{
-  e.preventDefault();
-  joystickPointer=e.pointerId;
-  try { joystick.setPointerCapture(e.pointerId); } catch (_) {}
-  moveJoystick(e);
-});
-joystick.addEventListener("pointermove",e=>{
-  if (e.pointerId===joystickPointer) {
-    e.preventDefault();
-    moveJoystick(e);
-  }
-});
-joystick.addEventListener("pointerup",e=>{
-  if (e.pointerId===joystickPointer) resetJoystick();
-});
-joystick.addEventListener("pointercancel",resetJoystick);
-window.addEventListener("resize",resetJoystick);
-
-updateModeButtons();
-updateScore();
-resetJoystick();
-reset();
-showOverlay("🐍 SnakePro Neon",
-  "Elige con paredes, sin paredes o Modo Infinito. En Infinito también puedes escoger si los bordes te detienen.");
+  // Primera pantalla y configuración predeterminada.
+  chooseWalls(true);
+  updateStats();
+  draw();
 })();
 </script>
 </body>
