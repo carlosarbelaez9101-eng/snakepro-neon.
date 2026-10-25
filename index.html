@@ -42,12 +42,13 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 .overlay p{color:#c3c9e7}
 .game-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .game-actions button{flex:1;min-width:100px}
-.controls{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(2,48px);justify-content:center;gap:6px;margin:16px auto 0;user-select:none}
-.controls button{padding:0;font-size:1.3rem;background:#151a36;border-color:#39416d;touch-action:manipulation}
-.controls .up{grid-column:2;grid-row:1}.controls .left{grid-column:1;grid-row:2}.controls .down{grid-column:2;grid-row:2}.controls .right{grid-column:3;grid-row:2}
+.joystick-area{display:flex;justify-content:center;margin:18px auto;user-select:none;-webkit-user-select:none}
+.joystick{position:relative;width:130px;height:130px;border-radius:50%;background:rgba(0,245,255,.05);border:1px solid rgba(0,245,255,.25);box-shadow:0 0 20px rgba(0,245,255,.08);touch-action:none;flex-shrink:0}
+.joystick-ring{position:absolute;inset:17px;border:1px solid rgba(0,245,255,.22);border-radius:50%;pointer-events:none}
+.stick{position:absolute;width:48px;height:48px;left:40px;top:40px;border-radius:50%;background:rgba(0,245,255,.18);border:2px solid rgba(0,245,255,.8);box-shadow:0 0 15px rgba(0,245,255,.35);pointer-events:none;transition:background .1s}
 .hint{text-align:center;color:var(--muted);font-size:.78rem;margin:8px 0 0}
 .footer{text-align:center;color:#777fa5;font-size:.75rem;margin:15px 0}
-@media(min-width:560px){.controls{grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,48px)}}
+@media(min-width:560px){.joystick{width:140px;height:140px}.stick{left:45px;top:45px}}
 </style>
 </head>
 <body>
@@ -109,13 +110,13 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
     <button id="soundBtn">🔊 Sonido</button>
     <button id="menuBtn">⌂ Menú</button>
   </div>
-  <div class="controls" aria-label="Controles táctiles">
-    <button class="up" data-dir="up" aria-label="Arriba">▲</button>
-    <button class="left" data-dir="left" aria-label="Izquierda">◀</button>
-    <button class="down" data-dir="down" aria-label="Abajo">▼</button>
-    <button class="right" data-dir="right" aria-label="Derecha">▶</button>
+  <div class="joystick-area" aria-label="Joystick táctil">
+    <div id="joystick" class="joystick" role="application" aria-label="Mueve el dedo en la dirección deseada">
+      <div class="joystick-ring"></div>
+      <div id="stick" class="stick"></div>
+    </div>
   </div>
-  <p class="hint">Desliza sobre el tablero o usa las flechas / WASD.</p>
+  <p class="hint">Desliza el joystick para mover la serpiente · También puedes deslizar sobre el tablero.</p>
 </section>
 <div class="footer">SNAKEPRO NEON · Arcade móvil</div>
 </div>
@@ -149,7 +150,7 @@ function updateSoundButtons(){
   $("soundMenuBtn").textContent=sound?"🔊 Sonido activado":"🔇 Sonido desactivado";
   $("soundMenuBtn").classList.toggle("active",sound);
 }
- function toggleSound(){sound=!sound;updateSoundButtons();if(sound)beep(520,.06)}
+function toggleSound(){sound=!sound;updateSoundButtons();if(sound)beep(520,.06)}
 $("soundMenuBtn").addEventListener("click",toggleSound);
 $("soundBtn").addEventListener("click",toggleSound);
 updateSoundButtons();
@@ -295,17 +296,14 @@ function makeRooms(){
   });
   for(let y=11;y<=18;y++)for(let x=11;x<=18;x++)clearCell(x,y);
 
-  // Zona segura al cambiar de nivel: no colocar paredes a menos de
-  // dos casillas de cualquier segmento de la serpiente ni sobre la comida.
-  obstacles=obstacles.filter(o=>{
-    const nearSnake=snake.some(part=>
-      Math.abs(part.x-o.x)<=2 && Math.abs(part.y-o.y)<=2
-    );
-    const onFood=o.x===food.x && o.y===food.y;
-    return !nearSnake && !onFood;
-  });
-} 
- function placeFood(){food=freeCell()}
+  // No generar paredes encima de la serpiente ni de la comida.
+  obstacles=obstacles.filter(o=>
+    !snake.some(part=>part.x===o.x&&part.y===o.y)&&
+    !(o.x===food.x&&o.y===food.y)
+  );
+}
+
+function placeFood(){food=freeCell()}
 function resetGame(){
   clearInterval(timer);timer=null;
   level=1;score=0;foodsThisLevel=0;
@@ -446,7 +444,8 @@ function draw(){
     ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
     ctx.shadowBlur=0;
     ctx.strokeStyle="#a78bfa";
-    ctx.lineWidth=1;    ctx.strokeRect(x+1.5,y+1.5,CELL-3,CELL-3);
+    ctx.lineWidth=1;
+    ctx.strokeRect(x+1.5,y+1.5,CELL-3,CELL-3);
     ctx.restore();
   });
   // Orbe de energía con pulso y halo animado.
@@ -532,9 +531,37 @@ function changeDirection(dir){
   if(d.x===-direction.x&&d.y===-direction.y)return;
   nextDirection=d;
 }
-document.querySelectorAll(".controls button").forEach(b=>{
-  b.addEventListener("pointerdown",e=>{e.preventDefault();changeDirection(b.dataset.dir)});
+const joystick=$("joystick"), stick=$("stick");
+let joyPointer=null;
+function resetJoystick(){
+  stick.style.left="";stick.style.top="";
+  stick.style.left=(joystick.clientWidth-stick.offsetWidth)/2+"px";
+  stick.style.top=(joystick.clientHeight-stick.offsetHeight)/2+"px";
+  joyPointer=null;
+}
+function moveJoystick(e){
+  const rect=joystick.getBoundingClientRect();
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  let dx=e.clientX-cx,dy=e.clientY-cy;
+  const max=(joystick.clientWidth-stick.offsetWidth)/2-3;
+  const distance=Math.hypot(dx,dy);
+  if(distance>max){dx=dx/distance*max;dy=dy/distance*max;}
+  stick.style.left=(joystick.clientWidth/2-stick.offsetWidth/2+dx)+"px";
+  stick.style.top=(joystick.clientHeight/2-stick.offsetHeight/2+dy)+"px";
+  if(Math.hypot(dx,dy)>12){
+    if(Math.abs(dx)>Math.abs(dy))changeDirection(dx>0?"right":"left");
+    else changeDirection(dy>0?"down":"up");
+  }
+}
+joystick.addEventListener("pointerdown",e=>{
+  e.preventDefault();joyPointer=e.pointerId;
+  try{joystick.setPointerCapture(e.pointerId)}catch(err){}
+  moveJoystick(e);
 });
+joystick.addEventListener("pointermove",e=>{if(e.pointerId===joyPointer)moveJoystick(e)});
+joystick.addEventListener("pointerup",e=>{if(e.pointerId===joyPointer)resetJoystick()});
+joystick.addEventListener("pointercancel",resetJoystick);
+resetJoystick();
 document.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   const dirs={arrowup:"up",w:"up",arrowdown:"down",s:"down",arrowleft:"left",a:"left",arrowright:"right",d:"right"};
