@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#050816">
-<meta name="description" content="SnakePro Neon: un juego de serpiente arcade con interfaz holográfica futurista.">
+<meta name="description" content="SnakePro Neon: juego de serpiente arcade con obstáculos geométricos y efectos neón.">
 <title>SnakePro Neon | Cyber Edition</title>
 
 <style>
@@ -150,13 +150,6 @@ h1 {
   box-shadow:0 0 20px rgba(0,245,255,.28);
 }
 .action.secondary { border-color:#45618c; color:#c3d8f3; }
-.row-buttons {
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-  margin-top:10px;
-}
-.action.danger { color:#ff7694; border-color:#9b3156; }
 .note {
   color:#809cbd;
   font-size:11px;
@@ -232,7 +225,7 @@ h1 {
   #menuSnake .snake-eye { animation:none; }
 }
 
-/* MARCADORES Y TABLERO */
+/* TABLERO Y MARCADORES */
 .hud {
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -335,7 +328,6 @@ footer {
   </header>
 
   <main id="menu">
-    <!-- ANIMACIÓN DECORATIVA -->
     <div id="menuSnake" aria-hidden="true">
       <svg viewBox="0 0 360 90" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -452,6 +444,9 @@ footer {
   let running = false, paused = false, over = false;
   let timer = null, audio = null;
 
+  // Tamaños estables y aleatorios por obstáculo
+  let obstacleSizes = new Map();
+
   const speeds = {easy:220,normal:155,hard:105};
   const bestKey = () => `spn_best_${mode}_${difficulty}`;
 
@@ -529,6 +524,8 @@ footer {
   // OBSTÁCULOS: AUMENTAN CON CADA NIVEL
   function makeObstacles() {
     obstacles = [];
+    obstacleSizes = new Map();
+
     if (mode !== "levels") return;
 
     const targetCount = 6 + (level - 1) * 3;
@@ -540,26 +537,30 @@ footer {
       attempts++;
 
       const candidate = {
-        x: Math.floor(Math.random() * TOTAL),
-        y: Math.floor(Math.random() * TOTAL)
+        x:Math.floor(Math.random()*TOTAL),
+        y:Math.floor(Math.random()*TOTAL)
       };
 
       if (
-        snake.some(s => s.x === candidate.x && s.y === candidate.y) ||
-        (food.x === candidate.x && food.y === candidate.y)
+        snake.some(s=>s.x===candidate.x && s.y===candidate.y) ||
+        (food.x===candidate.x && food.y===candidate.y)
       ) continue;
 
       if (
         head &&
-        Math.abs(candidate.x - head.x) +
-        Math.abs(candidate.y - head.y) <= 2
+        Math.abs(candidate.x-head.x)+Math.abs(candidate.y-head.y)<=2
       ) continue;
 
-      if (
-        obstacles.some(o => o.x === candidate.x && o.y === candidate.y)
-      ) continue;
+      if (obstacles.some(o=>o.x===candidate.x && o.y===candidate.y)) continue;
 
       obstacles.push(candidate);
+
+      // El tamaño se decide una vez y no parpadea al dibujarse.
+      const seed = Math.abs(
+        Math.sin((candidate.x+1)*127.1+(candidate.y+1)*311.7)*43758.5453
+      ) % 1;
+      const sizes = [8,13,18,23];
+      obstacleSizes.set(`${candidate.x},${candidate.y}`,sizes[Math.floor(seed*sizes.length)]);
     }
   }
 
@@ -590,6 +591,7 @@ footer {
     running = true;
     paused = false;
     over = false;
+    food = {x:10,y:10};
     makeObstacles();
     randomFood();
     $("score").textContent = score;
@@ -630,13 +632,16 @@ footer {
     const eating = head.x===food.x && head.y===food.y;
     const body = eating ? snake : snake.slice(0,-1);
 
-    if (body.some(s=>s.x===head.x && s.y===head.y) ||
-        obstacles.some(o=>o.x===head.x && o.y===head.y)) {
+    if (
+      body.some(s=>s.x===head.x && s.y===head.y) ||
+      obstacles.some(o=>o.x===head.x && o.y===head.y)
+    ) {
       endGame(false);
       return;
     }
 
     snake.unshift(head);
+
     if (eating) {
       score += 10;
       foodsEaten++;
@@ -654,10 +659,12 @@ footer {
         makeObstacles();
         beep(980,.18,"sine");
       }
+
       randomFood();
     } else {
       snake.pop();
     }
+
     draw();
   }
 
@@ -665,6 +672,7 @@ footer {
     ctx.fillStyle = "#030812";
     ctx.fillRect(0,0,SIZE,SIZE);
 
+    // CUADRÍCULA
     ctx.strokeStyle = "rgba(0,245,255,.075)";
     ctx.lineWidth = 1;
     for (let i=0;i<=TOTAL;i++) {
@@ -672,95 +680,102 @@ footer {
       ctx.moveTo(i*CELL,0);
       ctx.lineTo(i*CELL,SIZE);
       ctx.stroke();
+
       ctx.beginPath();
       ctx.moveTo(0,i*CELL);
       ctx.lineTo(SIZE,i*CELL);
       ctx.stroke();
     }
 
-    // OBSTÁCULOS GEOMÉTRICOS NEÓN
-    obstacles.forEach((o, index) => {
-      const x = o.x * CELL;
-      const y = o.y * CELL;
-      const cx = x + CELL / 2;
-      const cy = y + CELL / 2;
+    // OBSTÁCULOS GEOMÉTRICOS NEÓN DE TAMAÑOS ALEATORIOS
+    obstacles.forEach((o,index) => {
+      const cx = o.x*CELL+CELL/2;
+      const cy = o.y*CELL+CELL/2;
+      const key = `${o.x},${o.y}`;
+      const R = obstacleSizes.get(key) || 13;
+      const shape = index%4;
 
       ctx.save();
-      ctx.translate(cx, cy);
-      ctx.shadowBlur = 12;
+      ctx.translate(cx,cy);
+      ctx.shadowBlur = R*.8;
       ctx.shadowColor = "#b44dff";
-      ctx.fillStyle = "rgba(125,54,202,0.35)";
+      ctx.fillStyle = "rgba(125,54,202,0.45)";
       ctx.strokeStyle = "#df9aff";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = R>17 ? 3 : 2;
+      ctx.lineJoin = "round";
 
-      const shape = index % 4;
-
-      if (shape === 0) {
-        // Rombo
+      if (shape===0) {
+        // ROMBO
         ctx.beginPath();
-        ctx.moveTo(0, -8);
-        ctx.lineTo(8, 0);
-        ctx.lineTo(0, 8);
-        ctx.lineTo(-8, 0);
+        ctx.moveTo(0,-R);
+        ctx.lineTo(R,0);
+        ctx.lineTo(0,R);
+        ctx.lineTo(-R,0);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-      } else if (shape === 1) {
-        // Triángulo
+
+      } else if (shape===1) {
+        // TRIÁNGULO
         ctx.beginPath();
-        ctx.moveTo(0, -8);
-        ctx.lineTo(8, 7);
-        ctx.lineTo(-8, 7);
+        ctx.moveTo(0,-R);
+        ctx.lineTo(R,R*.8);
+        ctx.lineTo(-R,R*.8);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-      } else if (shape === 2) {
-        // Hexágono
+
+      } else if (shape===2) {
+        // HEXÁGONO
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const angle = Math.PI / 3 * i - Math.PI / 6;
-          const px = Math.cos(angle) * 8;
-          const py = Math.sin(angle) * 8;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
+        for (let i=0;i<6;i++) {
+          const angle = Math.PI/3*i-Math.PI/6;
+          const px = Math.cos(angle)*R;
+          const py = Math.sin(angle)*R;
+          if (i===0) ctx.moveTo(px,py);
+          else ctx.lineTo(px,py);
         }
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+
       } else {
-        // Cruz tecnológica
+        // CRUZ
+        const t = R*.38;
         ctx.beginPath();
-        ctx.moveTo(-3, -8);
-        ctx.lineTo(3, -8);
-        ctx.lineTo(3, -3);
-        ctx.lineTo(8, -3);
-        ctx.lineTo(8, 3);
-        ctx.lineTo(3, 3);
-        ctx.lineTo(3, 8);
-        ctx.lineTo(-3, 8);
-        ctx.lineTo(-3, 3);
-        ctx.lineTo(-8, 3);
-        ctx.lineTo(-8, -3);
-        ctx.lineTo(-3, -3);
+        ctx.moveTo(-t,-R);
+        ctx.lineTo(t,-R);
+        ctx.lineTo(t,-t);
+        ctx.lineTo(R,-t);
+        ctx.lineTo(R,t);
+        ctx.lineTo(t,t);
+        ctx.lineTo(t,R);
+        ctx.lineTo(-t,R);
+        ctx.lineTo(-t,t);
+        ctx.lineTo(-R,t);
+        ctx.lineTo(-R,-t);
+        ctx.lineTo(-t,-t);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
       }
 
-      // Núcleo luminoso
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = "#f3c9ff";
+      // NÚCLEO LUMINOSO
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = "#ffffff";
+      ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(0, 0, 2, 0, Math.PI * 2);
+      ctx.arc(0,0,Math.max(2,R*.16),0,Math.PI*2);
       ctx.fill();
+
       ctx.restore();
     });
 
     // COMIDA
     ctx.save();
-    ctx.shadowBlur=18;
-    ctx.shadowColor="#ff416c";
-    ctx.fillStyle="#ff416c";
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "#ff416c";
+    ctx.fillStyle = "#ff416c";
     ctx.beginPath();
     ctx.arc(food.x*CELL+CELL/2,food.y*CELL+CELL/2,CELL*.32,0,Math.PI*2);
     ctx.fill();
@@ -776,6 +791,7 @@ footer {
       ctx.beginPath();
       ctx.roundRect(x+2,y+2,CELL-4,CELL-4,5);
       ctx.fill();
+
       if (i===0) {
         ctx.shadowBlur=0;
         ctx.fillStyle="#051a25";
@@ -805,10 +821,21 @@ footer {
     over = true;
     updateBest();
     beep(won?1000:160,.35,won?"sine":"sawtooth");
+
     if (won) {
-      showOverlay("¡MISIÓN COMPLETADA!",`¡Has superado los 10 niveles! Puntuación: ${score}`,"JUGAR OTRA VEZ",resetGame);
+      showOverlay(
+        "¡MISIÓN COMPLETADA!",
+        `¡Has superado los 10 niveles! Puntuación: ${score}`,
+        "JUGAR OTRA VEZ",
+        resetGame
+      );
     } else {
-      showOverlay("SISTEMA DESTRUIDO",`Puntuación final: ${score}`,"REINTENTAR",resetGame);
+      showOverlay(
+        "SISTEMA DESTRUIDO",
+        `Puntuación final: ${score}`,
+        "REINTENTAR",
+        resetGame
+      );
     }
   }
 
@@ -818,11 +845,16 @@ footer {
     $("pauseBtn").textContent = paused?"▶ SEGUIR":"Ⅱ PAUSA";
 
     if (paused) {
-      showOverlay("MISIÓN EN PAUSA","Tu progreso está guardado durante esta partida.","CONTINUAR",()=>{
-        paused = false;
-        $("overlay").classList.add("hidden");
-        $("pauseBtn").textContent = "Ⅱ PAUSA";
-      });
+      showOverlay(
+        "MISIÓN EN PAUSA",
+        "Tu progreso está guardado durante esta partida.",
+        "CONTINUAR",
+        ()=>{
+          paused = false;
+          $("overlay").classList.add("hidden");
+          $("pauseBtn").textContent = "Ⅱ PAUSA";
+        }
+      );
     } else {
       $("overlay").classList.add("hidden");
     }
@@ -845,10 +877,12 @@ footer {
     beep(600);
     resetGame();
   });
+
   $("restartBtn").addEventListener("click",()=>{
     getAudio();
     resetGame();
   });
+
   $("pauseBtn").addEventListener("click",togglePause);
   $("overlayMenuBtn").addEventListener("click",backToMenu);
 
@@ -858,9 +892,13 @@ footer {
   }
 
   document.addEventListener("keydown",e=>{
-    const keys=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d","W","A","S","D"," "];
+    const keys=[
+      "ArrowUp","ArrowDown","ArrowLeft","ArrowRight",
+      "w","a","s","d","W","A","S","D"," "
+    ];
     if (!keys.includes(e.key)) return;
     if ($("game").classList.contains("hidden")) return;
+
     e.preventDefault();
     getAudio();
 
@@ -874,15 +912,19 @@ footer {
   });
 
   let touchX=0,touchY=0;
+
   canvas.addEventListener("pointerdown",e=>{
     touchX=e.clientX;
     touchY=e.clientY;
   });
+
   canvas.addEventListener("pointerup",e=>{
     const dx=e.clientX-touchX;
     const dy=e.clientY-touchY;
     if (Math.max(Math.abs(dx),Math.abs(dy))<12) return;
+
     getAudio();
+
     if (Math.abs(dx)>Math.abs(dy)) {
       setDirection(dx>0?1:-1,0);
     } else {
