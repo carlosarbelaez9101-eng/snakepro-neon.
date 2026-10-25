@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -132,6 +131,9 @@ let snake=[], direction={x:1,y:0}, nextDirection={x:1,y:0}, food={x:15,y:15};
 let obstacles=[], level=1, score=0, best=0, foodsThisLevel=0;
 let running=false, paused=false, gameOver=false, timer=null, lastTick=0, audioCtx=null;
 let roomLayout=[];
+// Efectos visuales adicionales: no modifican la jugabilidad.
+let particles=[];
+let levelFlashUntil=0;
 const speeds={easy:155,normal:115,hard:82};
 try{best=Number(localStorage.getItem("snakepro-neon-best")||0)||0;}catch(e){}
 $("best").textContent=best;
@@ -178,66 +180,46 @@ function freeCell(){
 }
 function rectCells(x,y,w,h){
   const out=[];
-  for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)if(inside(xx,yy))out.push({x:xx,y:yy});
+  for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)out.push({x:xx,y:yy});
   return out;
 }
-
-/* Habitaciones grandes, pasillos amplios y dificultad gradual por nivel. */
+function clearCell(x,y){obstacles=obstacles.filter(o=>o.x!==x||o.y!==y)}
 function makeRooms(){
-  obstacles=[];roomLayout=[];
-  if(mode!=="levels")return;
-
-  const occupied=new Set();
-  const addWall=(x,y)=>{
-    if(!inside(x,y)||x<=0||y<=0||x>=TOTAL-1||y>=TOTAL-1)return;
-    const k=key(x,y);
-    if(occupied.has(k)||snake.some(part=>part.x===x&&part.y===y))return;
-    occupied.add(k);obstacles.push({x,y});
-  };
-  const clearCell=(x,y)=>{
-    occupied.delete(key(x,y));
-    obstacles=obstacles.filter(o=>!(o.x===x&&o.y===y));
-  };
-
-  // Seis habitaciones amplias en dos columnas y tres filas.
+  obstacles=[];
+  if(mode==="infinite")return;
+  // Habitaciones y pasillos amplios, con aberturas para recorrer el mapa.
   const rooms=[
-    {x:2,y:2,w:9,h:6}, {x:18,y:2,w:9,h:6},
-    {x:2,y:12,w:9,h:6}, {x:18,y:12,w:9,h:6},
-    {x:2,y:22,w:9,h:6}, {x:18,y:22,w:9,h:6}
+    {x:2,y:2,w:8,h:6},
+    {x:20,y:2,w:8,h:6},
+    {x:2,y:22,w:8,h:6},
+    {x:20,y:22,w:8,h:6},
+    {x:2,y:11,w:7,h:7},
+    {x:21,y:11,w:7,h:7}
   ];
-
+  const scale=Math.min(1,(level+1)/5);
   rooms.forEach((r,i)=>{
-    // Dos aberturas por lado para evitar callejones y facilitar el giro.
-    const topGap=2+((level+i*2)%(r.w-4));
-    const sideGap=2+((level+i)%(r.h-3));
-    for(let dx=0;dx<r.w;dx++){
-      if(Math.abs(dx-topGap)>1)addWall(r.x+dx,r.y);
-      if(Math.abs(dx-(r.w-1-topGap))>1)addWall(r.x+dx,r.y+r.h-1);
-    }
-    for(let dy=0;dy<r.h;dy++){
-      if(Math.abs(dy-sideGap)>1)addWall(r.x,r.y+dy);
-      if(Math.abs(dy-(r.h-1-sideGap))>1)addWall(r.x+r.w-1,r.y+dy);
-    }
-    roomLayout.push(r);
-
-    // Desde el nivel 4 aparecen pocos divisores; se agregan gradualmente.
-    const addDivider=(level>=4&&i===1)||(level>=6&&i===3)||(level>=8&&i===4)||(level>=10&&i===0);
-    if(addDivider){
-      const midX=r.x+Math.floor(r.w/2);
-      const openingY=r.y+Math.floor(r.h/2);
-      for(let y=r.y+1;y<r.y+r.h-1;y++){
-        if(Math.abs(y-openingY)>1)addWall(midX,y);
-      }
-      clearCell(midX,openingY-1);clearCell(midX,openingY);clearCell(midX,openingY+1);
+    const wall=[];
+    for(let x=r.x;x<r.x+r.w;x++){wall.push({x,y:r.y},{x,y:r.y+r.h-1})}
+    for(let y=r.y;y<r.y+r.h;y++){wall.push({x:r.x,y},{x:r.x+r.w-1,y})}
+    const unique=[...new Map(wall.map(o=>[key(o.x,o.y),o])).values()];
+    obstacles.push(...unique);
+    // Puertas amplias en posiciones alternadas.
+    const midX=r.x+Math.floor(r.w/2);
+    const midY=r.y+Math.floor(r.h/2);
+    clearCell(midX,r.y);
+    clearCell(midX,r.y+r.h-1);
+    clearCell(r.x,midY);
+    clearCell(r.x+r.w-1,midY);
+    if(level>=3&&i%2===0){
+      clearCell(midX-1,r.y);
+      clearCell(midX+1,r.y+r.h-1);
     }
   });
-
   // Corredores principales de cuatro casillas de ancho.
   for(let y=1;y<TOTAL-1;y++)[13,14,15,16].forEach(x=>clearCell(x,y));
   [9,10,19,20].forEach(y=>{
     for(let x=1;x<TOTAL-1;x++)clearCell(x,y);
   });
-
   // Área central de salida despejada para que la partida empiece con seguridad.
   for(let y=11;y<=18;y++)for(let x=11;x<=18;x++)clearCell(x,y);
   obstacles=obstacles.filter(o=>!(o.x===food.x&&o.y===food.y));
@@ -249,6 +231,7 @@ function resetGame(){
   snake=[{x:14,y:15},{x:13,y:15},{x:12,y:15}];
   direction={x:1,y:0};nextDirection={x:1,y:0};
   obstacles=[];roomLayout=[];
+  // Generate level layout only after safe starting snake is set.
   makeRooms();
   placeFood();
   running=true;paused=false;gameOver=false;
@@ -268,6 +251,7 @@ function setGameOver(title,msg){
 function levelUp(){
   if(mode!=="levels")return;
   level=Math.min(10,level+1);foodsThisLevel=0;
+  levelFlashUntil=Date.now()+900;
   $("level").textContent=level;
   makeRooms();placeFood();
   beep(760,.13);
@@ -290,6 +274,8 @@ function tick(){
   if(body.some(s=>s.x===nx&&s.y===ny)){setGameOver("¡Fin del juego!","Has chocado con tu propia cola.");return}
   snake.unshift({x:nx,y:ny});
   if(eating){
+    spawnParticles(food.x,food.y,"#00f5ff",24);
+    spawnParticles(food.x,food.y,"#ff3bd4",12);
     score+=10;foodsThisLevel++;
     $("score").textContent=score;
     beep(620,.06);
@@ -302,104 +288,3 @@ function tick(){
   }else snake.pop();
   draw();
 }
-function roundedRect(x,y,w,h,r){
-  ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):(ctx.rect(x,y,w,h));ctx.fill();
-}
-function draw(){
-  ctx.clearRect(0,0,SIZE,SIZE);
-  const bg=ctx.createLinearGradient(0,0,SIZE,SIZE);bg.addColorStop(0,"#080b1d");bg.addColorStop(1,"#100b24");
-  ctx.fillStyle=bg;ctx.fillRect(0,0,SIZE,SIZE);
-  ctx.strokeStyle="rgba(50,77,125,.22)";ctx.lineWidth=1;
-  for(let i=0;i<=TOTAL;i++){
-    ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,SIZE);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(SIZE,i*CELL);ctx.stroke();
-  }
-  obstacles.forEach(o=>{
-    const x=o.x*CELL,y=o.y*CELL;
-    ctx.save();ctx.shadowBlur=10;ctx.shadowColor="#8b5cf6";
-    const g=ctx.createLinearGradient(x,y,x+CELL,y+CELL);
-    g.addColorStop(0,"#6241b5");g.addColorStop(.55,"#30285f");g.addColorStop(1,"#171d3c");
-    ctx.fillStyle=g;ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
-    ctx.shadowBlur=0;ctx.strokeStyle="#a78bfa";ctx.lineWidth=1;
-    ctx.strokeRect(x+1.5,y+1.5,CELL-3,CELL-3);ctx.restore();
-  });
-  const fx=food.x*CELL+CELL/2,fy=food.y*CELL+CELL/2;
-  ctx.save();ctx.shadowBlur=22;ctx.shadowColor="#ff3bd4";
-  const fg=ctx.createRadialGradient(fx-3,fy-3,1,fx,fy,10);
-  fg.addColorStop(0,"#fff");fg.addColorStop(.35,"#ffb6f0");fg.addColorStop(1,"#ff3bd4");
-  ctx.fillStyle=fg;ctx.beginPath();ctx.arc(fx,fy,7.5,0,Math.PI*2);ctx.fill();ctx.restore();
-  snake.forEach((s,i)=>{
-    const x=s.x*CELL,y=s.y*CELL;
-    ctx.save();ctx.shadowBlur=i===0?18:9;ctx.shadowColor=i===0?"#00f5ff":"#00c9c9";
-    const sg=ctx.createLinearGradient(x,y,x+CELL,y+CELL);
-    sg.addColorStop(0,i===0?"#d4ffff":"#4afaff");sg.addColorStop(1,i===0?"#00c9ff":"#087bba");
-    ctx.fillStyle=sg;roundedRect(x+1.5,y+1.5,CELL-3,CELL-3,i===0?6:5);
-    ctx.restore();
-    if(i===0){
-      ctx.fillStyle="#071023";
-      const ex=x+CELL/2+(direction.x===1?4:direction.x===-1?-4:0);
-      const ey=y+CELL/2+(direction.y===1?4:direction.y===-1?-4:0);
-      if(direction.x!==0){ctx.beginPath();ctx.arc(ex,y+6,2,0,Math.PI*2);ctx.arc(ex,y+14,2,0,Math.PI*2);ctx.fill()}
-      else{ctx.beginPath();ctx.arc(x+6,ey,2,0,Math.PI*2);ctx.arc(x+14,ey,2,0,Math.PI*2);ctx.fill()}
-    }
-  });
-}
-function showOverlay(title,text,btn="Continuar"){
-  $("overlayTitle").textContent=title;$("overlayText").textContent=text;$("overlayBtn").textContent=btn;$("overlay").classList.add("show");
-}
-function hideOverlay(){$("overlay").classList.remove("show")}
-function pauseGame(){
-  if(gameOver)return;
-  if(paused){
-    paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop();
-  }else{
-    paused=true;running=false;stopLoop();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar";
-  }
-}
-$("startBtn").addEventListener("click",()=>{
-  $("menu").style.display="none";$("game").style.display="block";resetGame();
-});
-$("restartBtn").addEventListener("click",resetGame);
-$("pauseBtn").addEventListener("click",pauseGame);
-$("overlayBtn").addEventListener("click",()=>{
-  if(gameOver){resetGame();return}
-  paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop();
-});
-function backToMenu(){
-  stopLoop();running=false;paused=false;gameOver=false;
-  $("game").style.display="none";$("menu").style.display="block";hideOverlay();
-}
-$("menuBtn").addEventListener("click",backToMenu);
-$("overlayMenuBtn").addEventListener("click",backToMenu);
-function changeDirection(dir){
-  const map={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
-  const d=map[dir];if(!d)return;
-  if(d.x===-direction.x&&d.y===-direction.y)return;
-  nextDirection=d;
-}
-document.querySelectorAll(".controls button").forEach(b=>{
-  b.addEventListener("pointerdown",e=>{e.preventDefault();changeDirection(b.dataset.dir)});
-});
-document.addEventListener("keydown",e=>{
-  const k=e.key.toLowerCase();
-  const dirs={arrowup:"up",w:"up",arrowdown:"down",s:"down",arrowleft:"left",a:"left",arrowright:"right",d:"right"};
-  if(dirs[k]){e.preventDefault();changeDirection(dirs[k])}
-  else if(k===" "){e.preventDefault();pauseGame()}
-  else if(k==="escape"){backToMenu()}
-});
-let touchStart=null;
-canvas.addEventListener("pointerdown",e=>{touchStart={x:e.clientX,y:e.clientY}});
-canvas.addEventListener("pointerup",e=>{
-  if(!touchStart)return;
-  const dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y;
-  if(Math.max(Math.abs(dx),Math.abs(dy))>18){
-    if(Math.abs(dx)>Math.abs(dy))changeDirection(dx>0?"right":"left");
-    else changeDirection(dy>0?"down":"up");
-  }
-  touchStart=null;
-});
-draw();
-})();
-</script>
-</body>
-</html>
