@@ -6,21 +6,84 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#070b18">
 <title>SnakePro Neon</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#070b18;color:#eafcff;font-family:Arial,sans-serif;text-align:center}
-h1{color:#00f7ff;text-shadow:0 0 15px #00f7ff;margin:15px 0}
-.panel{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:10px}
-.stat{background:#111c31;border:1px solid #00d9ff;border-radius:10px;padding:9px}
-button{background:#10243c;color:#fff;border:1px solid #00eaff;border-radius:9px;padding:11px;margin:4px;font-weight:bold}
+body{
+  margin:0;
+  padding:10px;
+  background:#070b18;
+  color:#eafcff;
+  font-family:Arial,sans-serif;
+  text-align:center
+}
+h1{
+  color:#00f7ff;
+  text-shadow:0 0 15px #00f7ff;
+  margin:15px 0
+}
+.panel{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:10px
+}
+.stat{
+  background:#111c31;
+  border:1px solid #00d9ff;
+  border-radius:10px;
+  padding:9px
+}
+button{
+  background:#10243c;
+  color:#fff;
+  border:1px solid #00eaff;
+  border-radius:9px;
+  padding:11px;
+  margin:4px;
+  font-weight:bold;
+  cursor:pointer;
+  touch-action:manipulation
+}
 button:active{background:#007b92}
-canvas{background:#050914;border:2px solid #00eaff;border-radius:10px;width:min(92vw,400px);height:min(92vw,400px);max-width:400px;max-height:400px}
+canvas{
+  display:block;
+  background:#050914;
+  border:2px solid #00eaff;
+  border-radius:10px;
+  width:min(92vw,400px);
+  height:min(92vw,400px);
+  max-width:400px;
+  max-height:400px;
+  margin:auto
+}
 #message{min-height:24px;color:#ffe66d}
-.controls{display:grid;grid-template-columns:55px 55px 55px;gap:5px;justify-content:center;margin:10px}
-.controls button{height:48px;font-size:20px;margin:0}
-.power{max-width:420px;margin:10px auto;padding:8px}
+.controls{
+  display:grid;
+  grid-template-columns:55px 55px 55px;
+  gap:5px;
+  justify-content:center;
+  margin:10px
+}
+.controls button{
+  height:48px;
+  font-size:20px;
+  margin:0;
+  padding:0
+}
+.power{
+  max-width:420px;
+  margin:10px auto;
+  padding:8px;
+  background:#0b1428;
+  border:1px solid #193a56;
+  border-radius:12px
+}
+.power button{display:inline-block}
 </style>
 </head>
+
 <body>
 <h1>🐍 SnakePro Neon</h1>
 
@@ -31,6 +94,7 @@ canvas{background:#050914;border:2px solid #00eaff;border-radius:10px;width:min(
 </div>
 
 <canvas id="game" width="400" height="400"></canvas>
+
 <p id="message">¡Come, gana monedas y activa poderes!</p>
 
 <div>
@@ -47,28 +111,39 @@ canvas{background:#050914;border:2px solid #00eaff;border-radius:10px;width:min(
 </div>
 
 <div class="controls">
-  <span></span><button onclick="setDir(0,-1)">⬆️</button><span></span>
-  <button onclick="setDir(-1,0)">⬅️</button>
-  <button onclick="setDir(0,1)">⬇️</button>
-  <button onclick="setDir(1,0)">➡️</button>
+  <span></span>
+  <button onclick="setDir(0,-1)" aria-label="Arriba">⬆️</button>
+  <span></span>
+  <button onclick="setDir(-1,0)" aria-label="Izquierda">⬅️</button>
+  <button onclick="setDir(0,1)" aria-label="Abajo">⬇️</button>
+  <button onclick="setDir(1,0)" aria-label="Derecha">➡️</button>
 </div>
 
 <script>
+"use strict";
+
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const size = 20;
 const cells = 20;
 
-let snake, food, direction, nextDirection;
+let snake = [];
+let food = null;
+let direction = {x:1,y:0};
+let nextDirection = {x:1,y:0};
+
 let score = 0;
 let coins = Number(localStorage.getItem("snakeCoins") || 0);
 let best = Number(localStorage.getItem("snakeBest") || 0);
+
 let walls = true;
 let running = false;
 let shield = false;
+
 let speedUntil = 0;
 let slowUntil = 0;
 let loop = null;
+let lastTick = 0;
 
 const scoreEl = document.getElementById("score");
 const coinsEl = document.getElementById("coins");
@@ -80,8 +155,9 @@ function updateStats(){
   scoreEl.textContent = score;
   coinsEl.textContent = coins;
   bestEl.textContent = best;
-  localStorage.setItem("snakeCoins", coins);
-  localStorage.setItem("snakeBest", best);
+
+  localStorage.setItem("snakeCoins", String(coins));
+  localStorage.setItem("snakeBest", String(best));
 }
 
 function randomFood(){
@@ -91,21 +167,31 @@ function randomFood(){
       x: Math.floor(Math.random()*cells),
       y: Math.floor(Math.random()*cells)
     };
-  } while(snake && snake.some(s => s.x===p.x && s.y===p.y));
+  } while(snake.some(s => s.x===p.x && s.y===p.y));
+
   return p;
 }
 
 function startGame(){
   clearInterval(loop);
-  snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+
+  snake = [
+    {x:10,y:10},
+    {x:9,y:10},
+    {x:8,y:10}
+  ];
+
   direction = {x:1,y:0};
   nextDirection = {x:1,y:0};
+
   score = 0;
   shield = false;
   speedUntil = 0;
   slowUntil = 0;
+
   food = randomFood();
   running = true;
+
   messageEl.textContent = "¡Partida iniciada!";
   updateStats();
   refreshPower();
@@ -113,22 +199,56 @@ function startGame(){
   draw();
 }
 
+function getDelay(){
+  const now = Date.now();
+
+  if(now < slowUntil) return 190;
+  if(now < speedUntil) return 65;
+
+  return 115;
+}
+
 function scheduleLoop(){
   clearInterval(loop);
-  let delay = Date.now() < slowUntil ? 190 : Date.now() < speedUntil ? 65 : 115;
-  loop = setInterval(tick, delay);
+
+  loop = setInterval(() => {
+    if(!running) return;
+
+    const oldDelay = getDelay();
+
+    tick();
+
+    if(!running) return;
+
+    const newDelay = getDelay();
+
+    // Reprogramar el ciclo cuando cambia la velocidad.
+    if(oldDelay !== newDelay){
+      scheduleLoop();
+    }
+
+    refreshPower();
+  }, getDelay());
 }
 
 function setDir(x,y){
   if(!running) return;
+
+  // Impide girar directamente hacia el cuerpo.
   if(x === -direction.x && y === -direction.y) return;
+
   nextDirection = {x,y};
 }
 
 function toggleWalls(){
   walls = !walls;
-  document.getElementById("wallLabel").textContent = walls ? "Sí" : "No";
-  messageEl.textContent = walls ? "Las paredes están activadas." : "Puedes atravesar los bordes.";
+
+  document.getElementById("wallLabel").textContent =
+    walls ? "Sí" : "No";
+
+  messageEl.textContent = walls
+    ? "Las paredes están activadas."
+    : "Puedes atravesar los bordes.";
 }
 
 function buyPower(type){
@@ -142,13 +262,17 @@ function buyPower(type){
       messageEl.textContent = "Ya tienes un escudo preparado.";
       return;
     }
+
     if(coins < 30){
       messageEl.textContent = "Necesitas 30 monedas para el escudo.";
       return;
     }
+
     coins -= 30;
     shield = true;
-    messageEl.textContent = "🛡️ Escudo activado: bloqueará una colisión.";
+
+    messageEl.textContent =
+      "🛡️ Escudo listo: bloqueará una colisión.";
   }
 
   if(type === "fast" || type === "slow"){
@@ -156,16 +280,23 @@ function buyPower(type){
       messageEl.textContent = "Necesitas 20 monedas para este poder.";
       return;
     }
+
     coins -= 20;
+
     if(type === "fast"){
       speedUntil = Date.now() + 5000;
       slowUntil = 0;
-      messageEl.textContent = "🐇 ¡Velocidad aumentada durante 5 segundos!";
+
+      messageEl.textContent =
+        "🐇 ¡Velocidad aumentada durante 5 segundos!";
     } else {
       slowUntil = Date.now() + 5000;
       speedUntil = 0;
-      messageEl.textContent = "🐢 Velocidad reducida durante 5 segundos.";
+
+      messageEl.textContent =
+        "🐢 Velocidad reducida durante 5 segundos.";
     }
+
     scheduleLoop();
   }
 
@@ -174,49 +305,76 @@ function buyPower(type){
 }
 
 function refreshPower(){
-  let active = [];
+  const now = Date.now();
+  const active = [];
+
   if(shield) active.push("🛡️ Escudo disponible");
-  if(Date.now() < speedUntil) active.push("🐇 Velocidad");
-  if(Date.now() < slowUntil) active.push("🐢 Lentitud");
-  powerEl.textContent = active.length ? active.join(" · ") : "Sin poderes activos";
+  if(now < speedUntil) active.push("🐇 Velocidad");
+  if(now < slowUntil) active.push("🐢 Lentitud");
+
+  powerEl.textContent = active.length
+    ? active.join(" · ")
+    : "Sin poderes activos";
 }
 
 function tick(){
   if(!running) return;
 
   direction = nextDirection;
+
   const head = {
     x: snake[0].x + direction.x,
     y: snake[0].y + direction.y
   };
 
+  // Modo sin paredes: reaparecer por el borde contrario.
   if(!walls){
     head.x = (head.x + cells) % cells;
     head.y = (head.y + cells) % cells;
-  } else if(head.x < 0 || head.y < 0 || head.x >= cells || head.y >= cells){
-    if(shield){
-      shield = false;
-      head.x = Math.max(0,Math.min(cells-1,head.x));
-      head.y = Math.max(0,Math.min(cells-1,head.y));
-      messageEl.textContent = "🛡️ ¡El escudo bloqueó el choque!";
-      refreshPower();
-    } else {
-      return gameOver();
-    }
   }
 
-  const eating = head.x === food.x && head.y === food.y;
+  // Colisión con paredes.
+  else if(
+    head.x < 0 || head.y < 0 ||
+    head.x >= cells || head.y >= cells
+  ){
+    if(shield){
+      shield = false;
+      messageEl.textContent =
+        "🛡️ ¡El escudo bloqueó el choque!";
+
+      refreshPower();
+      updateStats();
+      return;
+    }
+
+    gameOver();
+    return;
+  }
+
+  const eating =
+    head.x === food.x && head.y === food.y;
+
+  // Si no come, la cola se moverá y esa casilla queda libre.
   const body = eating ? snake : snake.slice(0,-1);
-  const hitSelf = body.some(part => part.x === head.x && part.y === head.y);
+
+  const hitSelf = body.some(
+    part => part.x === head.x && part.y === head.y
+  );
 
   if(hitSelf){
     if(shield){
       shield = false;
-      messageEl.textContent = "🛡️ ¡Escudo usado para bloquear el choque!";
+      messageEl.textContent =
+        "🛡️ El escudo bloqueó la colisión con tu cuerpo.";
+
       refreshPower();
+      updateStats();
       return;
     }
-    return gameOver();
+
+    gameOver();
+    return;
   }
 
   snake.unshift(head);
@@ -224,16 +382,15 @@ function tick(){
   if(eating){
     score += 10;
     coins += 5;
-    food = randomFood();
-    messageEl.textContent = "¡+10 puntos y +5 monedas!";
+
     if(score > best) best = score;
+
+    food = randomFood();
+
+    messageEl.textContent = "¡+10 puntos y +5 monedas!";
     updateStats();
   } else {
     snake.pop();
-  }
-
-  if(Date.now() >= speedUntil && Date.now() >= slowUntil){
-    refreshPower();
   }
 
   draw();
@@ -242,7 +399,10 @@ function tick(){
 function gameOver(){
   running = false;
   clearInterval(loop);
-  messageEl.textContent = "💥 Fin de la partida. Pulsa Jugar para intentarlo de nuevo.";
+
+  messageEl.textContent =
+    "💥 Fin de la partida. Pulsa Jugar para intentarlo de nuevo.";
+
   draw();
 }
 
@@ -250,41 +410,70 @@ function draw(){
   ctx.fillStyle = "#050914";
   ctx.fillRect(0,0,400,400);
 
+  // Cuadrícula neón.
   ctx.strokeStyle = "#101f35";
+  ctx.lineWidth = 1;
+
   for(let i=0;i<=400;i+=size){
-    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,400);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(400,i);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(i,0);
+    ctx.lineTo(i,400);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0,i);
+    ctx.lineTo(400,i);
+    ctx.stroke();
   }
 
+  // Comida.
   if(food){
     ctx.shadowColor = "#ff3978";
     ctx.shadowBlur = 16;
     ctx.fillStyle = "#ff3978";
+
     ctx.beginPath();
-    ctx.arc(food.x*size+10,food.y*size+10,7,0,Math.PI*2);
+    ctx.arc(
+      food.x*size+10,
+      food.y*size+10,
+      7,0,Math.PI*2
+    );
     ctx.fill();
+
     ctx.shadowBlur = 0;
   }
 
-  if(snake){
-    snake.forEach((part,i)=>{
-      ctx.fillStyle = i===0 ? "#faffff" : "#00eaff";
-      ctx.shadowColor = "#00eaff";
-      ctx.shadowBlur = i===0 ? 15 : 7;
-      ctx.fillRect(part.x*size+2,part.y*size+2,size-4,size-4);
-    });
-    ctx.shadowBlur = 0;
-  }
+  // Serpiente.
+  snake.forEach((part,i)=>{
+    ctx.fillStyle = i===0 ? "#faffff" : "#00eaff";
+    ctx.shadowColor = "#00eaff";
+    ctx.shadowBlur = i===0 ? 15 : 7;
+
+    ctx.fillRect(
+      part.x*size+2,
+      part.y*size+2,
+      size-4,
+      size-4
+    );
+  });
+
+  ctx.shadowBlur = 0;
 }
 
 document.addEventListener("keydown",e=>{
   const keys = {
-    ArrowUp:[0,-1], w:[0,-1],
-    ArrowDown:[0,1], s:[0,1],
-    ArrowLeft:[-1,0], a:[-1,0],
-    ArrowRight:[1,0], d:[1,0]
+    ArrowUp:[0,-1],
+    w:[0,-1],
+    ArrowDown:[0,1],
+    s:[0,1],
+    ArrowLeft:[-1,0],
+    a:[-1,0],
+    ArrowRight:[1,0],
+    d:[1,0]
   };
+
   const key = keys[e.key];
+
   if(key){
     e.preventDefault();
     setDir(key[0],key[1]);
