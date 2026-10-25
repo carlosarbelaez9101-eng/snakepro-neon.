@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#080b18">
-<meta name="description" content="SnakePro Neon: 10 niveles y modo infinito de serpiente neón.">
+<meta name="description" content="SnakePro Neon: 10 niveles y modo infinito con o sin paredes.">
 <title>SnakePro Neon</title>
 <style>
 :root {
@@ -31,28 +31,24 @@ h1 {
   flex:1; min-width:0; padding:11px 5px;
   border:1px solid #283b61; background:#0d1426; border-radius:14px;
 }
-.stat span {
-  display:block; color:var(--muted); font-size:10px;
-  text-transform:uppercase;
-}
+.stat span { display:block; color:var(--muted); font-size:10px; text-transform:uppercase; }
 .stat strong { display:block; color:var(--green); font-size:23px; }
 .game-wrap {
   position:relative; width:100%; overflow:hidden;
   border:2px solid var(--cyan); border-radius:16px;
   box-shadow:0 0 12px #00f5ff66,inset 0 0 20px #00f5ff12;
-  background:#070b16; touch-action:none;
+  background:#070b16;
 }
-canvas { display:block; width:100%; height:auto; aspect-ratio:1; }
+canvas { display:block; width:100%; height:auto; aspect-ratio:1; touch-action:none; }
 .overlay {
-  position:absolute; inset:0; z-index:2;
-  display:flex; align-items:center; justify-content:center;
-  padding:12px; background:#050816e8; backdrop-filter:blur(5px);
+  position:absolute; inset:0; z-index:2; display:flex;
+  align-items:center; justify-content:center; padding:12px;
+  background:#050816e8; backdrop-filter:blur(5px);
 }
 .overlay.hidden { display:none; }
 .overlay-card {
-  width:100%; max-height:100%; overflow:auto;
-  padding:18px 12px; border-radius:18px;
-  border:1px solid #00f5ff80; background:#0d1425;
+  width:100%; max-height:100%; overflow:auto; padding:18px 12px;
+  border-radius:18px; border:1px solid #00f5ff80; background:#0d1425;
   box-shadow:0 0 25px #00f5ff22;
 }
 .overlay h2 { color:var(--cyan); margin:0 0 8px; font-size:24px; }
@@ -64,18 +60,14 @@ button {
   font:inherit; font-weight:750; cursor:pointer;
   border:1px solid #31456b; border-radius:12px;
   color:var(--text); background:#18233d;
-  padding:12px 8px; min-height:44px;
-  transition:transform .1s,background .15s;
+  padding:12px 8px; min-height:44px; transition:transform .1s;
 }
 button:active { transform:scale(.97); }
 button.active {
-  color:#041018; background:var(--cyan);
-  border-color:var(--cyan); box-shadow:0 0 12px #00f5ff55;
+  color:#041018; background:var(--cyan); border-color:var(--cyan);
+  box-shadow:0 0 12px #00f5ff55;
 }
-button.primary {
-  color:#041018; background:var(--green);
-  border-color:var(--green); box-shadow:0 0 12px #39ff8844;
-}
+button.primary { color:#041018; background:var(--green); border-color:var(--green); }
 button.pink { border-color:#ff38d180; }
 .overlay .primary { width:100%; margin-top:12px; }
 .actions { margin-top:12px; }
@@ -88,9 +80,7 @@ button.pink { border-color:#ff38d180; }
   background:radial-gradient(circle,#132847 0%,#0a1121 70%);
   box-shadow:0 0 22px #00f5ff20; touch-action:none; user-select:none;
 }
-.joystick::before,.joystick::after {
-  content:""; position:absolute; background:#00f5ff22;
-}
+.joystick::before,.joystick::after { content:""; position:absolute; background:#00f5ff22; }
 .joystick::before { width:1px; height:100%; left:50%; top:0; }
 .joystick::after { height:1px; width:100%; top:50%; left:0; }
 .knob {
@@ -119,11 +109,11 @@ button.pink { border-color:#ff38d180; }
   </div>
 
   <div class="game-wrap">
-    <canvas id="game" width="400" height="400" aria-label="Tablero SnakePro Neon"></canvas>
+    <canvas id="game" width="400" height="400" aria-label="Tablero de SnakePro Neon"></canvas>
     <div class="overlay" id="overlay">
       <div class="overlay-card">
         <h2 id="overlayTitle">🐍 SnakePro Neon</h2>
-        <p id="overlayText">Elige tu modo de juego.</p>
+        <p id="overlayText">Elige un modo para comenzar.</p>
         <div class="section-label">MODO DE JUEGO</div>
         <div class="modes">
           <button id="wallModeBtnMenu" class="active">🧱 Con paredes</button>
@@ -147,8 +137,8 @@ button.pink { border-color:#ff38d180; }
     <button id="pauseBtn">Ⅱ Pausar</button>
     <button id="restartBtn" class="pink">↻ Reiniciar</button>
   </div>
-
   <div class="status" id="status">Elige un modo y pulsa Jugar.</div>
+
   <div class="joystick-area">
     <div class="joystick" id="joystick" aria-label="Joystick táctil">
       <div class="knob" id="joyKnob"></div>
@@ -203,7 +193,6 @@ let over = false;
 let levelComplete = false;
 let timer = null;
 let speed = 135;
-let soundOn = true;
 let audioContext = null;
 let touchStart = null;
 let joystickPointer = null;
@@ -217,7 +206,6 @@ try {
 best = regularBest;
 
 function playTone(freq=440,duration=0.07) {
-  if (!soundOn) return;
   try {
     audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
     if (audioContext.state === "suspended") audioContext.resume();
@@ -225,7 +213,7 @@ function playTone(freq=440,duration=0.07) {
     const gain = audioContext.createGain();
     osc.type = "sine";
     osc.frequency.value = freq;
-    gain.gain.value = 0.06;
+    gain.gain.value = 0.05;
     gain.gain.exponentialRampToValueAtTime(0.001,audioContext.currentTime+duration);
     osc.connect(gain);
     gain.connect(audioContext.destination);
@@ -261,7 +249,7 @@ function stopTimer() {
 }
 function scheduleLoop() {
   stopTimer();
-  timer = setInterval(tick,speed);
+  if (running && !paused) timer = setInterval(tick,speed);
 }
 
 function createObstacles() {
@@ -276,14 +264,10 @@ function createObstacles() {
   };
 
   switch (currentLevel) {
-    case 1:
-      addH(2,5,4); addH(14,17,15); break;
-    case 2:
-      addV(4,3,7); addV(15,12,16); addH(8,11,4); break;
-    case 3:
-      addV(3,3,8); addV(16,11,16); addH(8,12,5); addH(7,11,14); break;
-    case 4:
-      addH(2,7,4); addH(12,17,7); addH(2,7,13); addH(12,17,16); break;
+    case 1: addH(2,5,4); addH(14,17,15); break;
+    case 2: addV(4,3,7); addV(15,12,16); addH(8,11,4); break;
+    case 3: addV(3,3,8); addV(16,11,16); addH(8,12,5); addH(7,11,14); break;
+    case 4: addH(2,7,4); addH(12,17,7); addH(2,7,13); addH(12,17,16); break;
     case 5:
       addV(5,3,7); addV(14,12,16); addH(8,11,4); addH(8,11,15);
       addV(10,6,8); addV(10,12,13); break;
@@ -308,21 +292,20 @@ function createObstacles() {
 }
 
 function placeFood() {
-  const freeCells = [];
+  const free = [];
   for (let y=0;y<cells;y++) {
     for (let x=0;x<cells;x++) {
-      if (!snake.some(p=>p.x===x && p.y===y) &&
-          !obstacles.some(p=>p.x===x && p.y===y)) {
-        freeCells.push({x,y});
-      }
+      const onSnake = snake.some(p=>p.x===x && p.y===y);
+      const onObstacle = obstacles.some(p=>p.x===x && p.y===y);
+      if (!onSnake && !onObstacle) free.push({x,y});
     }
   }
-  if (!freeCells.length) {
+  if (!free.length) {
     if (infiniteMode) gameOver("¡Tablero lleno! ¡Increíble partida!");
     else completeLevel();
     return;
   }
-  food = freeCells[Math.floor(Math.random()*freeCells.length)];
+  food = free[Math.floor(Math.random()*free.length)];
 }
 
 function reset() {
@@ -345,36 +328,51 @@ function reset() {
   pauseBtn.textContent = "Ⅱ Pausar";
   overlayPlayBtn.textContent = "▶ Comenzar partida";
   statusEl.textContent = infiniteMode
-    ? "Modo infinito: come y sobrevive cuanto puedas."
+    ? (wallMode ? "Infinito con paredes listo." : "Infinito sin paredes listo.")
     : "Nivel "+currentLevel+": evita las paredes y los obstáculos.";
   draw();
 }
 
+/* Cambia las paredes sin desactivar el modo infinito. */
 function chooseWallMode(withWalls) {
   if (running && !over && !levelComplete) return;
-  infiniteMode = false;
+
   wallMode = withWalls;
-  best = regularBest;
+  best = infiniteMode ? infiniteBest : regularBest;
   updateModeButtons();
   reset();
+
   showOverlay(
-    withWalls ? "🧱 Modo con paredes" : "↔️ Modo sin paredes",
-    "Completa los 10 niveles comiendo 5 alimentos por nivel."
+    infiniteMode
+      ? (withWalls ? "♾️ Infinito con paredes" : "♾️ Infinito sin paredes")
+      : (withWalls ? "🧱 Modo con paredes" : "↔️ Modo sin paredes"),
+    infiniteMode
+      ? "Come toda la comida que puedas. "+
+        (withWalls ? "¡Cuidado con los bordes! " : "Puedes atravesar los bordes. ")+
+        "La velocidad aumenta cada 5 alimentos."
+      : "Completa los 10 niveles comiendo 5 alimentos por nivel."
   );
 }
 
+/* Activa infinito conservando la elección de paredes actual. */
 function chooseInfiniteMode() {
   if (running && !over && !levelComplete) return;
+
   infiniteMode = true;
-  wallMode = true;
-  currentLevel = 1;
   best = infiniteBest;
+  currentLevel = 1;
   updateModeButtons();
   reset();
+
   showOverlay(
     "♾️ MODO INFINITO",
-    "Come toda la comida que puedas. Cada 5 alimentos la serpiente será más rápida. ¡Supera tu récord!"
+    "Come toda la comida que puedas. "+
+    (wallMode ? "¡No choques contra las paredes! " : "Puedes atravesar los bordes. ")+
+    "Cada 5 alimentos aumentarás de velocidad."
   );
+  statusEl.textContent = wallMode
+    ? "Infinito con paredes preparado."
+    : "Infinito sin paredes preparado.";
 }
 
 function setDirection(x,y) {
@@ -388,15 +386,14 @@ function gameOver(message="¡Fin del juego!") {
   over = true;
   levelComplete = false;
   stopTimer();
-  playTone(160,0.22);
+  playTone(160,0.2);
   playBtn.textContent = "▶ Jugar otra vez";
   pauseBtn.textContent = "Ⅱ Pausar";
   statusEl.textContent = message;
   showOverlay(message,
-    "Puntuación: "+score+". "+(infiniteMode
-      ? "Récord infinito: "+infiniteBest+"."
-      : "Nivel: "+currentLevel+".")+
-      " Pulsa reintentar para jugar de nuevo.");
+    "Puntuación: "+score+". "+
+    (infiniteMode ? "Récord infinito: "+infiniteBest+". " : "Nivel: "+currentLevel+". ")+
+    "Pulsa reintentar para jugar de nuevo.");
   overlayPlayBtn.textContent = "▶ Reintentar";
 }
 
@@ -411,9 +408,7 @@ function completeLevel() {
 
   if (currentLevel<MAX_LEVEL) {
     unlockedLevel = Math.max(unlockedLevel,currentLevel+1);
-    try {
-      localStorage.setItem("snakepro-neon-unlocked",String(unlockedLevel));
-    } catch (_) {}
+    try { localStorage.setItem("snakepro-neon-unlocked",String(unlockedLevel)); } catch (_) {}
     showOverlay("¡Nivel "+currentLevel+" completado!",
       "¡Excelente! El nivel "+(currentLevel+1)+" está desbloqueado.");
     overlayPlayBtn.textContent = "▶ Siguiente nivel";
@@ -446,8 +441,8 @@ function tick() {
   }
 
   const eating = head.x===food.x && head.y===food.y;
-  const bodyToCheck = eating ? snake : snake.slice(0,-1);
-  if (bodyToCheck.some(p=>p.x===head.x && p.y===head.y)) {
+  const body = eating ? snake : snake.slice(0,-1);
+  if (body.some(p=>p.x===head.x && p.y===head.y)) {
     gameOver("¡Chocaste contra tu cuerpo!");
     return;
   }
@@ -457,6 +452,7 @@ function tick() {
   if (eating) {
     score += 10;
     foodsInLevel++;
+
     if (infiniteMode) {
       if (score>infiniteBest) {
         infiniteBest = score;
@@ -465,21 +461,20 @@ function tick() {
           localStorage.setItem("snakepro-neon-infinite-best",String(infiniteBest));
         } catch (_) {}
       }
-      // Cada 5 alimentos, aumenta la velocidad hasta un máximo.
       const newSpeed = Math.max(55,135-Math.floor(foodsInLevel/5)*10);
       if (newSpeed!==speed) {
         speed = newSpeed;
         scheduleLoop();
         playTone(780,0.09);
       }
-      statusEl.textContent = "♾️ Infinito · Alimentos: "+foodsInLevel+
+      statusEl.textContent = "♾️ Infinito "+
+        (wallMode ? "con paredes" : "sin paredes")+
+        " · Alimentos: "+foodsInLevel+
         " · Velocidad: "+(Math.round(135/speed*100)/100)+"x";
     } else if (score>regularBest) {
       regularBest = score;
       best = regularBest;
-      try {
-        localStorage.setItem("snakepro-neon-best",String(regularBest));
-      } catch (_) {}
+      try { localStorage.setItem("snakepro-neon-best",String(regularBest)); } catch (_) {}
     }
 
     updateScore();
@@ -510,29 +505,29 @@ function roundedRect(x,y,w,h,r) {
 
 function draw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = "#070b16";
+  ctx.fillStyle="#070b16";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  ctx.strokeStyle = "#172642";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle="#172642";
+  ctx.lineWidth=1;
   for (let i=0;i<=cells;i++) {
-    const pos = i*cellSize;
-    ctx.beginPath(); ctx.moveTo(pos,0); ctx.lineTo(pos,canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0,pos); ctx.lineTo(canvas.width,pos); ctx.stroke();
+    const p=i*cellSize;
+    ctx.beginPath(); ctx.moveTo(p,0); ctx.lineTo(p,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,p); ctx.lineTo(canvas.width,p); ctx.stroke();
   }
 
   if (wallMode) {
-    ctx.strokeStyle = "#ff38d1";
-    ctx.lineWidth = 3;
-    ctx.shadowColor = "#ff38d1";
-    ctx.shadowBlur = 12;
+    ctx.strokeStyle="#ff38d1";
+    ctx.lineWidth=3;
+    ctx.shadowColor="#ff38d1";
+    ctx.shadowBlur=12;
     ctx.strokeRect(2,2,canvas.width-4,canvas.height-4);
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur=0;
   }
 
   ctx.save();
-  ctx.shadowColor = "#ff38d1";
-  ctx.shadowBlur = 10;
+  ctx.shadowColor="#ff38d1";
+  ctx.shadowBlur=10;
   obstacles.forEach(p=>{
     const pad=2,x=p.x*cellSize+pad,y=p.y*cellSize+pad,size=cellSize-pad*2;
     ctx.fillStyle="#a21caf";
@@ -544,14 +539,12 @@ function draw() {
   });
   ctx.restore();
 
-  const fx=food.x*cellSize+cellSize/2;
-  const fy=food.y*cellSize+cellSize/2;
   ctx.save();
   ctx.shadowColor="#ff38d1";
   ctx.shadowBlur=18;
   ctx.fillStyle="#ff38d1";
   ctx.beginPath();
-  ctx.arc(fx,fy,cellSize*0.34,0,Math.PI*2);
+  ctx.arc(food.x*cellSize+cellSize/2,food.y*cellSize+cellSize/2,cellSize*0.34,0,Math.PI*2);
   ctx.fill();
   ctx.restore();
 
@@ -588,7 +581,7 @@ function draw() {
   if (infiniteMode) {
     ctx.fillStyle="#00f5ff";
     ctx.font="bold 12px system-ui";
-    ctx.fillText("♾️ INFINITO",10,18);
+    ctx.fillText(wallMode ? "♾️ INFINITO · PAREDES" : "♾️ INFINITO · SIN PAREDES",10,18);
   }
 }
 
@@ -653,8 +646,9 @@ function togglePause() {
 function restart() {
   reset();
   showOverlay("¡Nueva partida!",
-    infiniteMode ? "Vuelve a intentarlo y supera tu récord infinito."
-    : "Volverás a empezar el nivel "+currentLevel+". Pulsa Comenzar partida.");
+    infiniteMode
+      ? "Modo infinito: "+(wallMode?"con paredes.":"sin paredes.")+" ¡Supera tu récord!"
+      : "Volverás a empezar el nivel "+currentLevel+".");
 }
 
 $("wallModeBtn").addEventListener("click",()=>chooseWallMode(true));
@@ -751,7 +745,7 @@ updateScore();
 resetJoystick();
 reset();
 showOverlay("🐍 SnakePro Neon",
-  "Supera los 10 niveles o entra en el Modo Infinito para jugar sin límite.");
+  "Elige con paredes, sin paredes o Modo Infinito. En Infinito también puedes escoger si los bordes te detienen.");
 })();
 </script>
 </body>
