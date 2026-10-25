@@ -131,6 +131,7 @@ let snake=[], direction={x:1,y:0}, nextDirection={x:1,y:0}, food={x:15,y:15};
 let obstacles=[], level=1, score=0, best=0, foodsThisLevel=0;
 let running=false, paused=false, gameOver=false, timer=null, lastTick=0, audioCtx=null;
 let roomLayout=[];
+// Efectos visuales adicionales: no modifican la jugabilidad.
 let particles=[];
 let levelFlashUntil=0;
 const speeds={easy:155,normal:115,hard:82};
@@ -148,7 +149,7 @@ function updateSoundButtons(){
   $("soundMenuBtn").textContent=sound?"🔊 Sonido activado":"🔇 Sonido desactivado";
   $("soundMenuBtn").classList.toggle("active",sound);
 }
-function toggleSound(){sound=!sound;updateSoundButtons();if(sound)beep(520,.06)}
+ function toggleSound(){sound=!sound;updateSoundButtons();if(sound)beep(520,.06)}
 $("soundMenuBtn").addEventListener("click",toggleSound);
 $("soundBtn").addEventListener("click",toggleSound);
 updateSoundButtons();
@@ -212,34 +213,41 @@ function makeRooms(){
     roomLayout.push({x,y,w,h:hh});
   };
 
+  // El tablero evoluciona por etapas, sin estrechar demasiado los corredores.
   switch(level){
     case 1:
+      // Entrenamiento: dos barreras cortas y mucho espacio libre.
       v(5,5,10,[7,8]); v(24,19,24,[21,22]);
       break;
     case 2:
+      // Cuatro cámaras grandes conectadas por puertas anchas.
       room(2,2,9,7,[["r",3],["b",4]]);
       room(19,2,9,7,[["l",3],["b",4]]);
       room(2,21,9,7,[["r",3],["t",4]]);
       room(19,21,9,7,[["l",3],["t",4]]);
       break;
     case 3:
+      // Dos columnas y travesaños: rutas alternativas arriba y abajo.
       v(6,3,26,[6,7,14,15,21,22]);
       v(23,3,26,[4,5,12,13,20,21]);
       h(7,7,22,[10,11,18,19]);
       h(22,7,22,[8,9,16,17]);
       break;
     case 4:
+      // Zigzag suave con puertas anchas.
       h(5,3,11,[5,6,7]); v(11,5,13,[9,10,11]);
       h(13,11,26,[19,20,21]); v(20,13,25,[16,17,18]);
       h(25,3,20,[7,8,9,14,15,16]); v(5,14,25,[18,19,20]);
       break;
     case 5:
+      // Cruces conectados y primeros desvíos de estrategia.
       v(5,3,26,[6,7,14,15,22,23]);
       v(24,3,26,[4,5,12,13,20,21]);
       h(6,5,24,[10,11,18,19]); h(23,5,24,[8,9,16,17]);
       v(10,7,22,[11,12,18,19]); v(19,7,22,[8,9,15,16]);
       break;
     case 6:
+      // Cuatro cámaras y dos pasillos transversales.
       room(2,2,9,9,[["r",4],["b",4]]);
       room(19,2,9,9,[["l",4],["b",4]]);
       room(2,19,9,9,[["r",4],["t",4]]);
@@ -247,12 +255,14 @@ function makeRooms(){
       h(5,11,18,[13,14,15,16]); h(24,11,18,[13,14,15,16]);
       break;
     case 7:
+      // Corredores en zigzag, con huecos suficientes para girar.
       h(4,2,27,[6,7,20,21]); h(9,2,27,[4,5,16,17]);
       h(20,2,27,[11,12,23,24]); h(25,2,27,[7,8,18,19]);
       v(7,5,8,[6]); v(16,10,19,[14,15]); v(24,21,24,[22]);
       v(12,5,8,[7]); v(21,10,19,[17,18]);
       break;
     case 8:
+      // Habitaciones simétricas con puertas alternadas y conexiones centrales.
       room(2,2,9,9,[["r",4],["b",5]]);
       room(19,2,9,9,[["l",4],["b",5]]);
       room(2,19,9,9,[["r",5],["t",5]]);
@@ -261,12 +271,14 @@ function makeRooms(){
       v(13,2,10,[4,5,8]); v(16,19,27,[21,22,25]);
       break;
     case 9:
+      // Tramos largos con puertas que cambian de lado en cada fila.
       h(4,2,27,[6,7,20,21]); h(9,2,27,[4,5,15,16]);
       h(20,2,27,[11,12,23,24]); h(25,2,27,[7,8,18,19]);
       v(7,5,8,[6]); v(16,10,19,[14,15]); v(24,21,24,[22]);
       v(12,5,8,[7]); v(21,10,19,[17,18]); v(5,21,24,[22]);
       break;
     case 10:
+      // Desafío final: cuatro cámaras y barreras centrales escalonadas.
       room(2,2,9,9,[["r",4],["b",4]]);
       room(19,2,9,9,[["l",4],["b",4]]);
       room(2,19,9,9,[["r",4],["t",4]]);
@@ -276,24 +288,31 @@ function makeRooms(){
       break;
   }
 
+  // Mantener abiertos los corredores principales y el área de inicio.
   for(let y=1;y<TOTAL-1;y++)[13,14,15,16].forEach(x=>clearCell(x,y));
   [9,10,19,20].forEach(y=>{
     for(let x=1;x<TOTAL-1;x++)clearCell(x,y);
   });
   for(let y=11;y<=18;y++)for(let x=11;x<=18;x++)clearCell(x,y);
 
-  obstacles=obstacles.filter(o=>
-    !snake.some(part=>part.x===o.x&&part.y===o.y)&&
-    !(o.x===food.x&&o.y===food.y)
-  );
-}
-  function placeFood(){food=freeCell()}
+  // Zona segura al cambiar de nivel: no colocar paredes a menos de
+  // dos casillas de cualquier segmento de la serpiente ni sobre la comida.
+  obstacles=obstacles.filter(o=>{
+    const nearSnake=snake.some(part=>
+      Math.abs(part.x-o.x)<=2 && Math.abs(part.y-o.y)<=2
+    );
+    const onFood=o.x===food.x && o.y===food.y;
+    return !nearSnake && !onFood;
+  });
+} 
+ function placeFood(){food=freeCell()}
 function resetGame(){
   clearInterval(timer);timer=null;
   level=1;score=0;foodsThisLevel=0;
   snake=[{x:14,y:15},{x:13,y:15},{x:12,y:15}];
   direction={x:1,y:0};nextDirection={x:1,y:0};
   obstacles=[];roomLayout=[];
+  // Generate level layout only after safe starting snake is set.
   makeRooms();
   placeFood();
   running=true;paused=false;gameOver=false;
@@ -370,8 +389,11 @@ function spawnParticles(x,y,color,count=20){
     });
   }
 }
+
 function drawVisualEffects(){
   const now=Date.now();
+
+  // Estrellas ambientales sutiles.
   for(let i=0;i<32;i++){
     const x=(i*137+31)%SIZE;
     const y=(i*223+67)%SIZE;
@@ -379,6 +401,8 @@ function drawVisualEffects(){
     ctx.fillStyle=`rgba(100,220,255,${alpha})`;
     ctx.fillRect(x,y,2,2);
   }
+
+  // Partículas luminosas.
   ctx.save();
   ctx.globalCompositeOperation="lighter";
   particles.forEach(p=>{
@@ -390,66 +414,92 @@ function drawVisualEffects(){
     ctx.beginPath();
     ctx.arc(p.x,p.y,p.size*alpha,0,Math.PI*2);
     ctx.fill();
-    p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;p.life--;
+    p.x+=p.vx;
+    p.y+=p.vy;
+    p.vx*=0.97;
+    p.vy*=0.97;
+    p.life--;
   });
   ctx.restore();
   particles=particles.filter(p=>p.life>0);
 }
+
 function draw(){
   ctx.clearRect(0,0,SIZE,SIZE);
-  const bg=ctx.createLinearGradient(0,0,SIZE,SIZE);
-  bg.addColorStop(0,"#080b1d");bg.addColorStop(1,"#100b24");
+  const bg=ctx.createLinearGradient(0,0,SIZE,SIZE);bg.addColorStop(0,"#080b1d");bg.addColorStop(1,"#100b24");
   ctx.fillStyle=bg;ctx.fillRect(0,0,SIZE,SIZE);
+  // Subtle grid, without a perimeter frame.
   ctx.strokeStyle="rgba(50,77,125,.22)";ctx.lineWidth=1;
-  for(let i=0;i<=TOTAL;i++){
-    ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,SIZE);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(SIZE,i*CELL);ctx.stroke();
-  }
-  obstacles.forEach(o=>{
+  for(let i=0;i<=TOTAL;i++){ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,SIZE);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(SIZE,i*CELL);ctx.stroke()}
+  // Habitaciones de cuadrados y rectángulos: bloques rectos, sin figuras decorativas.
+  // Se modifica únicamente la apariencia; las colisiones siguen usando las mismas celdas.
+  obstacles.forEach((o,i)=>{
     const x=o.x*CELL,y=o.y*CELL;
-    ctx.save();ctx.shadowBlur=10;ctx.shadowColor="#8b5cf6";
+    ctx.save();
+    ctx.shadowBlur=10;
+    ctx.shadowColor="#8b5cf6";
     const g=ctx.createLinearGradient(x,y,x+CELL,y+CELL);
-    g.addColorStop(0,"#6241b5");g.addColorStop(.55,"#30285f");g.addColorStop(1,"#171d3c");
-    ctx.fillStyle=g;ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
-    ctx.shadowBlur=0;ctx.strokeStyle="#a78bfa";ctx.lineWidth=1;
-    ctx.strokeRect(x+1.5,y+1.5,CELL-3,CELL-3);ctx.restore();
+    g.addColorStop(0,"#6241b5");
+    g.addColorStop(.55,"#30285f");
+    g.addColorStop(1,"#171d3c");
+    ctx.fillStyle=g;
+    ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
+    ctx.shadowBlur=0;
+    ctx.strokeStyle="#a78bfa";
+    ctx.lineWidth=1;    ctx.strokeRect(x+1.5,y+1.5,CELL-3,CELL-3);
+    ctx.restore();
   });
-  const fx=food.x*CELL+CELL/2,fy=food.y*CELL+CELL/2;
-  const pulse=1+0.16*Math.sin(Date.now()/130),radius=7.5*pulse;
-  ctx.save();ctx.globalCompositeOperation="lighter";ctx.shadowBlur=28;ctx.shadowColor="#ff3bd4";
-  ctx.strokeStyle="rgba(255,59,212,.45)";ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(fx,fy,12*pulse,0,Math.PI*2);ctx.stroke();
+  // Orbe de energía con pulso y halo animado.
+  const fx=food.x*CELL+CELL/2;
+  const fy=food.y*CELL+CELL/2;
+  const pulse=1+0.16*Math.sin(Date.now()/130);
+  const radius=7.5*pulse;
+  ctx.save();
+  ctx.globalCompositeOperation="lighter";
+  ctx.shadowBlur=28;
+  ctx.shadowColor="#ff3bd4";
+  ctx.strokeStyle="rgba(255,59,212,.45)";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.arc(fx,fy,12*pulse,0,Math.PI*2);
+  ctx.stroke();
   const fg=ctx.createRadialGradient(fx-3,fy-3,1,fx,fy,radius);
-  fg.addColorStop(0,"#ffffff");fg.addColorStop(.35,"#ffc7f4");fg.addColorStop(1,"#ff3bd4");
-  ctx.fillStyle=fg;ctx.beginPath();ctx.arc(fx,fy,radius,0,Math.PI*2);ctx.fill();ctx.restore();
+  fg.addColorStop(0,"#ffffff");
+  fg.addColorStop(.35,"#ffc7f4");
+  fg.addColorStop(1,"#ff3bd4");
+  ctx.fillStyle=fg;
+  ctx.beginPath();
+  ctx.arc(fx,fy,radius,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+  // Snake body
   snake.forEach((s,i)=>{
     const x=s.x*CELL,y=s.y*CELL;
     ctx.save();ctx.shadowBlur=i===0?18:9;ctx.shadowColor=i===0?"#00f5ff":"#00c9c9";
     const sg=ctx.createLinearGradient(x,y,x+CELL,y+CELL);
-    sg.addColorStop(0,i===0?"#d4ffff":"#4afaff");
-    sg.addColorStop(1,i===0?"#00c9ff":"#087bba");
-    ctx.fillStyle=sg;roundedRect(x+1.5,y+1.5,CELL-3,CELL-3,i===0?6:5);ctx.restore();
+    sg.addColorStop(0,i===0?"#d4ffff":"#4afaff");sg.addColorStop(1,i===0?"#00c9ff":"#087bba");
+    ctx.fillStyle=sg;roundedRect(x+1.5,y+1.5,CELL-3,CELL-3,i===0?6:5);
+    ctx.restore();
     if(i===0){
       ctx.fillStyle="#071023";
       const ex=x+CELL/2+(direction.x===1?4:direction.x===-1?-4:0);
       const ey=y+CELL/2+(direction.y===1?4:direction.y===-1?-4:0);
-      if(direction.x!==0){
-        ctx.beginPath();ctx.arc(ex,y+6,2,0,Math.PI*2);ctx.arc(ex,y+14,2,0,Math.PI*2);ctx.fill();
-      }else{
-        ctx.beginPath();ctx.arc(x+6,ey,2,0,Math.PI*2);ctx.arc(x+14,ey,2,0,Math.PI*2);ctx.fill();
-      }
+      if(direction.x!==0){ctx.beginPath();ctx.arc(ex,y+6,2,0,Math.PI*2);ctx.arc(ex,y+14,2,0,Math.PI*2);ctx.fill()}
+      else{ctx.beginPath();ctx.arc(x+6,ey,2,0,Math.PI*2);ctx.arc(x+14,ey,2,0,Math.PI*2);ctx.fill()}
     }
   });
+  // Destello breve al avanzar de nivel.
   if(Date.now()<levelFlashUntil){
     const remaining=(levelFlashUntil-Date.now())/900;
-    ctx.save();ctx.fillStyle=`rgba(0,245,255,${remaining*0.16})`;
-    ctx.fillRect(0,0,SIZE,SIZE);ctx.restore();
+    ctx.save();
+    ctx.fillStyle=`rgba(0,245,255,${remaining*0.16})`;
+    ctx.fillRect(0,0,SIZE,SIZE);
+    ctx.restore();
   }
   drawVisualEffects();
 }
 function showOverlay(title,text,btn="Continuar"){
-  $("overlayTitle").textContent=title;$("overlayText").textContent=text;
-  $("overlayBtn").textContent=btn;$("overlay").classList.add("show");
+  $("overlayTitle").textContent=title;$("overlayText").textContent=text;$("overlayBtn").textContent=btn;$("overlay").classList.add("show");
 }
 function hideOverlay(){$("overlay").classList.remove("show")}
 function pauseGame(){
@@ -457,9 +507,7 @@ function pauseGame(){
   if(paused){
     paused=false;running=true;hideOverlay();$("pauseBtn").textContent="Ⅱ Pausar";startLoop();
   }else{
-    paused=true;running=false;stopLoop();
-    showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");
-    $("pauseBtn").textContent="▶ Continuar";
+    paused=true;running=false;stopLoop();showOverlay("Pausa","Tómate un respiro y continúa cuando quieras.");$("pauseBtn").textContent="▶ Continuar";
   }
 }
 $("startBtn").addEventListener("click",()=>{
@@ -477,6 +525,7 @@ function backToMenu(){
 }
 $("menuBtn").addEventListener("click",backToMenu);
 $("overlayMenuBtn").addEventListener("click",backToMenu);
+
 function changeDirection(dir){
   const map={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
   const d=map[dir];if(!d)return;
