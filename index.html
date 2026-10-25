@@ -160,11 +160,11 @@ function reset(){
 snake=[{x:8,y:9},{x:7,y:9},{x:6,y:9}];dir={x:1,y:0};nextDir={x:1,y:0};score=0;running=false;paused=false;over=false;
 placeFood();updateScore();draw();showOverlay("¿Listo para jugar?","Pulsa Jugar y dirige la serpiente con el joystick o deslizando el dedo.");
 playBtn.textContent="▶ Jugar";pauseBtn.textContent="Ⅱ Pausar";
-}function chooseWallMode(withWalls){
+}window.chooseWallMode = function(withWalls){
   wallMode = withWalls;
   reset();
   start();
-}
+};
 function placeFood(){do{food={x:Math.floor(Math.random()*cells),y:Math.floor(Math.random()*cells)}}while(snake&&snake.some(p=>p.x===food.x&&p.y===food.y))}
 function updateScore(){scoreEl.textContent=score;bestEl.textContent=best}
 function showOverlay(title,text){overlayTitle.textContent=title;overlayText.textContent=text;overlay.classList.remove("hidden")}
@@ -180,7 +180,7 @@ if(paused){if(timer)clearInterval(timer);timer=null;showOverlay("Juego en pausa"
 else{hideOverlay();playBtn.textContent="▶ En juego";pauseBtn.textContent="Ⅱ Pausar";scheduleLoop()}
 }
 function change(d){if(d.x===-dir.x&&d.y===-dir.y)return;nextDir=d;if(!running&&!over)start()}
-let wallMode = true;function tick(){
+function tick(){
 if(!running||paused||over)return;dir=nextDir;
 const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
 if(wallMode&&(head.x<0||head.x>=cells||head.y<0||head.y>=cells)){
